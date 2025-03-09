@@ -1,4 +1,5 @@
 import { promptStorage, versionStorage, abTestStorage, promptlyApi } from './localStorage';
+import { Prompt, PromptVersion, ABTest } from '@/lib/types';
 
 // Check if we're running on the client side
 const isClient = typeof window !== 'undefined';
@@ -15,7 +16,7 @@ export const clientPromptStorage = {
     return promptStorage.getById(id);
   },
   
-  save: (prompt: any) => {
+  save: (prompt: Prompt) => {
     if (!isClient) return;
     promptStorage.save(prompt);
   },
@@ -47,7 +48,7 @@ export const clientVersionStorage = {
     return versionStorage.getByPromptId(promptId);
   },
   
-  save: (version: any) => {
+  save: (version: PromptVersion) => {
     if (!isClient) return;
     versionStorage.save(version);
   },
@@ -84,7 +85,7 @@ export const clientAbTestStorage = {
     return abTestStorage.getByPromptId(promptId);
   },
   
-  save: (test: any) => {
+  save: (test: ABTest) => {
     if (!isClient) return;
     abTestStorage.save(test);
   },

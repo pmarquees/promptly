@@ -20,7 +20,6 @@ interface NewVersionPageProps {
 export default function NewVersionPage({ params }: NewVersionPageProps) {
   const router = useRouter();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Load prompt from localStorage
@@ -38,8 +37,6 @@ export default function NewVersionPage({ params }: NewVersionPageProps) {
 
   const handleSubmit = (version: PromptVersion) => {
     if (!prompt) return;
-    
-    setIsSubmitting(true);
     
     try {
       // Save the version to localStorage
@@ -67,8 +64,6 @@ export default function NewVersionPage({ params }: NewVersionPageProps) {
     } catch (error) {
       console.error("Error creating version:", error);
       toast.error("Failed to create version");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

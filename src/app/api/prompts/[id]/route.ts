@@ -1,32 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Define types for our data
-interface Prompt {
-  id: string;
-  name: string;
-  content: string;
-  variables: string[];
-  currentVersionId?: string;
-  [key: string]: any;
-}
-
-interface Version {
-  id: string;
-  content: string;
-  variables: string[];
-  [key: string]: any;
-}
-
-// Helper function to safely parse JSON
-const safelyParseJSON = <T>(jsonString: string | null, defaultValue: T): T => {
-  if (!jsonString) return defaultValue;
-  try {
-    return JSON.parse(jsonString) as T;
-  } catch (error) {
-    console.error("Error parsing JSON:", error);
-    return defaultValue;
-  }
-};
+// Remove unused types and functions
 
 export async function GET(
   request: NextRequest,

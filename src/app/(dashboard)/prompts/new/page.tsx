@@ -13,11 +13,8 @@ import { toast } from "sonner";
 
 export default function NewPromptPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (prompt: Prompt) => {
-    setIsSubmitting(true);
-    
     try {
       // Save the prompt to localStorage
       clientPromptStorage.save(prompt);
@@ -30,8 +27,6 @@ export default function NewPromptPage() {
     } catch (error) {
       console.error("Error creating prompt:", error);
       toast.error("Failed to create prompt");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

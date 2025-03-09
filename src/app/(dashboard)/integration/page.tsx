@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LucideCode, LucideClipboard, LucideCheck } from "lucide-react";
+import { LucideClipboard, LucideCheck } from "lucide-react";
 import { PromptlyClient } from "@/components/integration/PromptlyClient";
 
 export default function IntegrationPage() {
@@ -268,7 +268,7 @@ requests.post(
 {`{
   "content": "The prompt content with {{variables}}",
   "variables": ["variable1", "variable2"],
-  "versionId": "version-id" // Only included when abTest=true
+  "versionId": "version-id" /* Only included when abTest=true */
 }`}
             </pre>
           </div>

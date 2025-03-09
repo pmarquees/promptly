@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { clientPromptStorage, clientVersionStorage } from "@/lib/store/clientStorage";
-import { Prompt, PromptVersion } from "@/lib/types";
-import { extractVariables } from "@/lib/utils";
+import { clientPromptStorage } from "@/lib/store/clientStorage";
+import { Prompt } from "@/lib/types";
 
 export function PromptlyClient() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);

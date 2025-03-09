@@ -44,7 +44,7 @@ export function PromptForm({ defaultValues, onSubmit, isEditing = false }: Promp
       const variables = extractVariables(content);
       setExtractedVariables(variables);
     }
-  }, [form.watch("content")]);
+  }, [form.watch("content"), form]);
 
   // Update form variables when extracted or custom variables change
   useEffect(() => {

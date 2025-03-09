@@ -44,7 +44,7 @@ export function VersionForm({ promptId, defaultValues, onSubmit, isEditing = fal
       const variables = extractVariables(content);
       setExtractedVariables(variables);
     }
-  }, [form.watch("content")]);
+  }, [form.watch("content"), form]);
 
   // Update form variables when extracted or custom variables change
   useEffect(() => {

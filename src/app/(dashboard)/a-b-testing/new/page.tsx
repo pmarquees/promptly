@@ -17,7 +17,6 @@ export default function NewABTestPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [versions, setVersions] = useState<PromptVersion[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Load prompts from localStorage
@@ -36,8 +35,6 @@ export default function NewABTestPage() {
   }, [selectedPromptId]);
 
   const handleSubmit = (test: ABTest) => {
-    setIsSubmitting(true);
-    
     try {
       // Save the A/B test to localStorage
       clientAbTestStorage.save(test);
@@ -50,8 +47,6 @@ export default function NewABTestPage() {
     } catch (error) {
       console.error("Error creating A/B test:", error);
       toast.error("Failed to create A/B test");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

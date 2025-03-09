@@ -15,7 +15,6 @@ import { toast } from "sonner";
 export default function ABTestingPage() {
   const [tests, setTests] = useState<ABTest[]>([]);
   const [prompts, setPrompts] = useState<Record<string, Prompt>>({});
-  const [versions, setVersions] = useState<Record<string, PromptVersion>>({});
 
   useEffect(() => {
     // Load A/B tests from localStorage
@@ -31,16 +30,6 @@ export default function ABTestingPage() {
     });
     
     setPrompts(promptMap);
-    
-    // Load versions and create a lookup map
-    const loadedVersions = clientVersionStorage.getAll();
-    const versionMap: Record<string, PromptVersion> = {};
-    
-    loadedVersions.forEach(version => {
-      versionMap[version.id] = version;
-    });
-    
-    setVersions(versionMap);
   }, []);
 
   const handleDelete = (id: string) => {
