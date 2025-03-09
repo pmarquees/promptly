@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { clientPromptStorage } from "@/lib/store/clientStorage";
 import { Prompt } from "@/lib/types";
 
 export function PromptlyClient() {
@@ -16,29 +15,76 @@ export function PromptlyClient() {
   const [filledPrompt, setFilledPrompt] = useState<string>("");
   const [apiResponse, setApiResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
 
-  // Load prompts from localStorage
+  // Load prompts from the server
   useEffect(() => {
-    const loadedPrompts = clientPromptStorage.getAll();
-    setPrompts(loadedPrompts);
+    const fetchPrompts = async () => {
+      setIsLoadingPrompts(true);
+      try {
+        const response = await fetch('/api/prompts');
+        if (response.ok) {
+          const data = await response.json();
+          setPrompts(data);
+        } else {
+          console.error('Failed to fetch prompts');
+        }
+      } catch (error) {
+        console.error('Error fetching prompts:', error);
+      } finally {
+        setIsLoadingPrompts(false);
+      }
+    };
+
+    fetchPrompts();
   }, []);
 
   // Update selected prompt when ID changes
   useEffect(() => {
     if (selectedPromptId) {
-      const prompt = clientPromptStorage.getById(selectedPromptId);
-      setSelectedPrompt(prompt || null);
-      
-      // Reset variables and filled prompt
-      setVariables({});
-      setFilledPrompt("");
-      setApiResponse("");
-      
-      // Initialize variables if prompt exists
-      if (prompt) {
-        const vars = prompt.variables.reduce((acc, v) => ({ ...acc, [v]: "" }), {});
-        setVariables(vars);
-      }
+      const fetchPrompt = async () => {
+        try {
+          const response = await fetch(`/api/prompts/${selectedPromptId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Create a prompt object from the API response
+            const prompt: Prompt = {
+              id: selectedPromptId,
+              name: data.name || "Unnamed Prompt",
+              description: data.description || "",
+              content: data.content,
+              variables: data.variables,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              createdBy: "",
+              isActive: true,
+              triggerCount: 0,
+              tags: [],
+              versions: []
+            };
+            
+            setSelectedPrompt(prompt);
+            
+            // Reset variables and filled prompt
+            setVariables({});
+            setFilledPrompt("");
+            setApiResponse("");
+            
+            // Initialize variables
+            const vars = data.variables.reduce((acc: Record<string, string>, v: string) => ({ ...acc, [v]: "" }), {});
+            setVariables(vars);
+          } else {
+            console.error('Failed to fetch prompt details');
+            setSelectedPrompt(null);
+          }
+        } catch (error) {
+          console.error('Error fetching prompt details:', error);
+          setSelectedPrompt(null);
+        }
+      };
+
+      fetchPrompt();
     } else {
       setSelectedPrompt(null);
     }
@@ -72,7 +118,13 @@ export function PromptlyClient() {
     setApiResponse("");
     
     try {
-      const response = await fetch(`/api/prompts/${selectedPromptId}`);
+      // Optionally add A/B testing parameter
+      const useAbTesting = true; // You can make this configurable
+      const url = useAbTesting 
+        ? `/api/prompts/${selectedPromptId}?abTest=true`
+        : `/api/prompts/${selectedPromptId}`;
+        
+      const response = await fetch(url);
       const data = await response.json();
       
       setApiResponse(JSON.stringify(data, null, 2));
@@ -96,18 +148,22 @@ export function PromptlyClient() {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">Select a Prompt</label>
-            <select
-              className="w-full p-2 mt-1 border rounded-md"
-              value={selectedPromptId}
-              onChange={(e) => setSelectedPromptId(e.target.value)}
-            >
-              <option value="">Select a prompt</option>
-              {prompts.map((prompt) => (
-                <option key={prompt.id} value={prompt.id}>
-                  {prompt.name}
-                </option>
-              ))}
-            </select>
+            {isLoadingPrompts ? (
+              <p className="text-sm text-muted-foreground">Loading prompts...</p>
+            ) : (
+              <select
+                className="w-full p-2 mt-1 border rounded-md"
+                value={selectedPromptId}
+                onChange={(e) => setSelectedPromptId(e.target.value)}
+              >
+                <option value="">Select a prompt</option>
+                {prompts.map((prompt) => (
+                  <option key={prompt.id} value={prompt.id}>
+                    {prompt.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           
           {selectedPrompt && (
