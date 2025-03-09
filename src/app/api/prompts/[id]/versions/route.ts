@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
@@ -69,6 +71,15 @@ export async function POST(
     // Generate ID if not provided
     const id = body.id || generateId();
     
+    // Get the current user session
+    const session = await getServerSession(authOptions);
+    let userId = session?.user?.id;
+    
+    // If no user is authenticated, use the same user as the prompt creator
+    if (!userId) {
+      userId = prompt.createdBy;
+    }
+    
     // Create the version
     const version = await prisma.promptVersion.create({
       data: {
@@ -77,7 +88,7 @@ export async function POST(
         name: body.name,
         content: body.content,
         variables: body.variables || [],
-        createdBy: body.createdBy || "Anonymous",
+        createdBy: userId,
         isActive: body.isActive !== undefined ? body.isActive : false,
         triggerCount: 0,
       },
