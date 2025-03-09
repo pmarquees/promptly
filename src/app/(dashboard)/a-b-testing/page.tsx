@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LucidePlus, LucideFlaskConical, LucideTrash, LucideEdit } from "lucide-react";
-import { clientPromptStorage, clientVersionStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
-import { Prompt, PromptVersion, ABTest } from "@/lib/types";
+import { clientPromptStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
+import { Prompt, ABTest } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 

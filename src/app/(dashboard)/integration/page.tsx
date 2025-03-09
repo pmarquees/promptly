@@ -261,7 +261,7 @@ requests.post(
             </p>
             <h4 className="text-sm font-medium mt-2">Query Parameters</h4>
             <ul className="list-disc pl-5 mt-1 text-sm">
-              <li><code>abTest</code> - Set to "true" to use A/B testing for this prompt.</li>
+              <li><code>abTest</code> - Set to &quot;true&quot; to use A/B testing for this prompt.</li>
             </ul>
             <h4 className="text-sm font-medium mt-2">Response</h4>
             <pre className="rounded-md bg-muted p-4 mt-1 overflow-x-auto font-mono text-sm">

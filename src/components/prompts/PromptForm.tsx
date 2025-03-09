@@ -39,12 +39,12 @@ export function PromptForm({ defaultValues, onSubmit, isEditing = false }: Promp
 
   // Extract variables from content when it changes
   useEffect(() => {
-    const content = form.watch("content");
-    if (content) {
-      const variables = extractVariables(content);
+    const contentWatch = form.watch("content");
+    if (contentWatch) {
+      const variables = extractVariables(contentWatch);
       setExtractedVariables(variables);
     }
-  }, [form.watch("content"), form]);
+  }, [form]);
 
   // Update form variables when extracted or custom variables change
   useEffect(() => {
