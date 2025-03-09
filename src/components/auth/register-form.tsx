@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
@@ -27,6 +27,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get("callbackUrl") || "/";
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   const {
@@ -69,6 +71,7 @@ export function RegisterForm() {
         email: data.email,
         password: data.password,
         redirect: false,
+        callbackUrl,
       });
 
       if (signInResult?.ok) {
@@ -157,7 +160,7 @@ export function RegisterForm() {
           type="button"
           disabled={isLoading}
           onClick={() => {
-            signIn("github", { callbackUrl: "/" });
+            signIn("github", { callbackUrl });
           }}
         >
           GitHub
@@ -167,7 +170,7 @@ export function RegisterForm() {
           type="button"
           disabled={isLoading}
           onClick={() => {
-            signIn("google", { callbackUrl: "/" });
+            signIn("google", { callbackUrl });
           }}
         >
           Google
