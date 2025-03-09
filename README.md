@@ -90,6 +90,68 @@ Promptly is a web application designed to facilitate the management, versioning,
 - Support for more complex prompt structures and templates.
 - Add export/import functionality for prompts and versions.
 
+## Authentication Setup
+
+This project uses NextAuth.js for authentication with the following features:
+
+- Email/password authentication
+- OAuth providers (GitHub, Google)
+- Session management
+- User registration
+
+### Setup Instructions
+
+1. Create a Neon PostgreSQL database at [neon.tech](https://neon.tech)
+2. Update the `.env` file with your database connection string:
+
+```
+DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
+```
+
+3. Generate a NextAuth.js secret:
+
+```bash
+openssl rand -base64 32
+```
+
+4. Update the `.env` file with your NextAuth.js secret:
+
+```
+NEXTAUTH_SECRET="your-generated-secret"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+5. (Optional) Add OAuth provider credentials:
+
+```
+# GitHub
+GITHUB_ID="your-github-client-id"
+GITHUB_SECRET="your-github-client-secret"
+
+# Google
+GOOGLE_ID="your-google-client-id"
+GOOGLE_SECRET="your-google-client-secret"
+```
+
+6. Run the database migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+7. Start the development server:
+
+```bash
+npm run dev
+```
+
+### Authentication Flow
+
+1. Users can register with email/password or sign in with OAuth providers
+2. Passwords are securely hashed using bcrypt
+3. Sessions are managed using JWT strategy
+4. User data is stored in the PostgreSQL database
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
