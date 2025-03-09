@@ -6,17 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideArrowLeft } from "lucide-react";
 import { PromptForm } from "@/components/prompts/PromptForm";
-import { clientPromptStorage } from "@/lib/store/clientStorage";
 import { Prompt } from "@/lib/types";
 import { toast } from "sonner";
 
 export default function NewPromptPage() {
   const router = useRouter();
 
-  const handleSubmit = (prompt: Prompt) => {
+  const handleSubmit = async (prompt: Prompt) => {
     try {
-      // Save the prompt to localStorage
-      clientPromptStorage.save(prompt);
+      // Save the prompt to the database via API
+      const response = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(prompt),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create prompt');
+      }
       
       // Show success message
       toast.success("Prompt created successfully");
@@ -25,7 +35,7 @@ export default function NewPromptPage() {
       router.push("/prompts");
     } catch (error) {
       console.error("Error creating prompt:", error);
-      toast.error("Failed to create prompt");
+      toast.error(error instanceof Error ? error.message : "Failed to create prompt");
     }
   };
 

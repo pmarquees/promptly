@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { LucideArrowLeft, LucideEdit, LucideTrash, LucidePlus, LucideCode } from "lucide-react";
-import { clientPromptStorage, clientVersionStorage } from "@/lib/store/clientStorage";
 import { Prompt, PromptVersion } from "@/lib/types";
 import { formatDate, generatePromptUrl, generateCodeSnippet } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,32 +24,85 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
   const [versions, setVersions] = useState<PromptVersion[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedLanguage, setSelectedLanguage] = useState<"javascript" | "python" | "curl">("javascript");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load prompt from localStorage
-    const promptId = params.id;
-    const loadedPrompt = clientPromptStorage.getById(promptId);
-    
-    if (!loadedPrompt) {
-      toast.error("Prompt not found");
-      router.push("/prompts");
-      return;
-    }
-    
-    setPrompt(loadedPrompt);
-    
-    // Load versions for this prompt
-    const loadedVersions = clientVersionStorage.getByPromptId(promptId);
-    setVersions(loadedVersions);
+    // Load prompt from API
+    const fetchPrompt = async () => {
+      setIsLoading(true);
+      try {
+        const promptId = params.id;
+        const response = await fetch(`/api/prompts/${promptId}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error("Prompt not found");
+            router.push("/prompts");
+            return;
+          }
+          throw new Error('Failed to fetch prompt');
+        }
+        
+        const data = await response.json();
+        
+        // Create a prompt object from the API response
+        const promptData: Prompt = {
+          id: promptId,
+          name: data.name || "Unnamed Prompt",
+          description: data.description || "",
+          content: data.content,
+          variables: data.variables,
+          createdAt: new Date(data.createdAt || new Date()),
+          updatedAt: new Date(data.updatedAt || new Date()),
+          createdBy: data.createdBy || "",
+          isActive: data.isActive !== undefined ? data.isActive : true,
+          triggerCount: data.triggerCount || 0,
+          tags: data.tags || [],
+          versions: data.versions || [],
+          currentVersionId: data.currentVersionId
+        };
+        
+        setPrompt(promptData);
+        
+        // Load versions for this prompt
+        const versionsResponse = await fetch(`/api/prompts/${promptId}/versions`);
+        if (versionsResponse.ok) {
+          const versionsData = await versionsResponse.json();
+          setVersions(versionsData);
+        } else {
+          setVersions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching prompt:', error);
+        toast.error('Failed to load prompt');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPrompt();
   }, [params.id, router]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!prompt) return;
     
     if (confirm("Are you sure you want to delete this prompt? This action cannot be undone.")) {
-      clientPromptStorage.delete(prompt.id);
-      toast.success("Prompt deleted successfully");
-      router.push("/prompts");
+      try {
+        const response = await fetch(`/api/prompts/${prompt.id}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          toast.success("Prompt deleted successfully");
+          router.push("/prompts");
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete prompt');
+        }
+      } catch (error) {
+        console.error('Error deleting prompt:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to delete prompt');
+      }
     }
   };
 
@@ -229,9 +281,25 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
                               ...prompt,
                               currentVersionId: version.id,
                             };
-                            clientPromptStorage.save(updatedPrompt);
-                            setPrompt(updatedPrompt);
-                            toast.success(`Set "${version.name}" as the current version`);
+                            fetch(`/api/prompts/${prompt.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify(updatedPrompt),
+                            })
+                            .then(response => {
+                              if (response.ok) {
+                                setPrompt(updatedPrompt);
+                                toast.success(`Set "${version.name}" as the current version`);
+                              } else {
+                                throw new Error('Failed to update prompt');
+                              }
+                            })
+                            .catch(error => {
+                              console.error('Error updating prompt:', error);
+                              toast.error('Failed to update prompt');
+                            });
                           }
                         }}
                       >

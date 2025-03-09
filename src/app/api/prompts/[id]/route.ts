@@ -204,4 +204,92 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = params.id;
+  
+  try {
+    const body = await request.json();
+    
+    // Validate required fields
+    if (!body.name || !body.content) {
+      return NextResponse.json(
+        { error: "Name and content are required" },
+        { status: 400 }
+      );
+    }
+    
+    // Check if prompt exists
+    const existingPrompt = await prisma.prompt.findUnique({
+      where: { id },
+    });
+    
+    if (!existingPrompt) {
+      return NextResponse.json(
+        { error: "Prompt not found" },
+        { status: 404 }
+      );
+    }
+    
+    // Update the prompt
+    const updatedPrompt = await prisma.prompt.update({
+      where: { id },
+      data: {
+        name: body.name,
+        description: body.description,
+        content: body.content,
+        variables: body.variables,
+        updatedAt: new Date(),
+        isActive: body.isActive !== undefined ? body.isActive : existingPrompt.isActive,
+        tags: body.tags || existingPrompt.tags,
+        currentVersionId: body.currentVersionId,
+      },
+    });
+    
+    return NextResponse.json(updatedPrompt);
+  } catch (error) {
+    console.error("Error updating prompt:", error);
+    return NextResponse.json(
+      { error: "Failed to update prompt", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = params.id;
+  
+  try {
+    // Check if prompt exists
+    const existingPrompt = await prisma.prompt.findUnique({
+      where: { id },
+    });
+    
+    if (!existingPrompt) {
+      return NextResponse.json(
+        { error: "Prompt not found" },
+        { status: 404 }
+      );
+    }
+    
+    // Delete the prompt
+    await prisma.prompt.delete({
+      where: { id },
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting prompt:", error);
+    return NextResponse.json(
+      { error: "Failed to delete prompt", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
 } 
