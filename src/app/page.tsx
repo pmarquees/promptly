@@ -8,37 +8,38 @@ import { LucideFlaskConical, LucideMessageSquare, LucidePlus } from "lucide-reac
 import { clientPromptStorage, clientVersionStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
 import { Prompt, PromptVersion, ABTest } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { getDashboardMetrics } from "@/lib/services/dashboardService";
 
-export default function Dashboard() {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [versions, setVersions] = useState<PromptVersion[]>([]);
-  const [tests, setTests] = useState<ABTest[]>([]);
-  const [totalTriggers, setTotalTriggers] = useState(0);
-  const [activeTests, setActiveTests] = useState(0);
+// Define types for the data structures
+interface PromptWithUser {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  triggerCount: number;
+  user: {
+    name: string | null;
+  };
+}
 
-  useEffect(() => {
-    // Load data from localStorage
-    const loadedPrompts = clientPromptStorage.getAll();
-    const loadedVersions = clientVersionStorage.getAll();
-    const loadedTests = clientAbTestStorage.getAll();
-    
-    setPrompts(loadedPrompts);
-    setVersions(loadedVersions);
-    setTests(loadedTests);
-    
-    // Calculate total triggers
-    const total = loadedPrompts.reduce((sum, prompt) => sum + prompt.triggerCount, 0);
-    setTotalTriggers(total);
-    
-    // Calculate active tests
-    const active = loadedTests.filter(test => test.isActive).length;
-    setActiveTests(active);
-  }, []);
+interface ABTestWithDetails {
+  id: string;
+  name: string;
+  prompt: {
+    name: string;
+  };
+  versions: Array<any>;
+}
 
-  // Get the most recently updated prompts
-  const recentPrompts = [...prompts]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
+export default async function Dashboard() {
+  // Fetch data from the server
+  const {
+    totalPrompts,
+    totalVersions,
+    totalTriggers,
+    activeTests,
+    recentPrompts,
+    activeTestsWithDetails
+  } = await getDashboardMetrics();
 
   return (
     <div className="space-y-6">
@@ -58,7 +59,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Total Prompts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{prompts.length}</div>
+            <div className="text-2xl font-bold">{totalPrompts}</div>
           </CardContent>
         </Card>
         
@@ -67,7 +68,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Total Versions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{versions.length}</div>
+            <div className="text-2xl font-bold">{totalVersions}</div>
           </CardContent>
         </Card>
         
@@ -101,7 +102,7 @@ export default function Dashboard() {
           <CardContent>
             {recentPrompts.length > 0 ? (
               <div className="space-y-4">
-                {recentPrompts.map((prompt) => (
+                {recentPrompts.map((prompt: PromptWithUser) => (
                   <div key={prompt.id} className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                       <LucideMessageSquare className="h-5 w-5 text-primary" />
@@ -148,32 +149,26 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {tests.filter(test => test.isActive).length > 0 ? (
+            {activeTestsWithDetails.length > 0 ? (
               <div className="space-y-4">
-                {tests
-                  .filter(test => test.isActive)
-                  .slice(0, 5)
-                  .map((test) => {
-                    const prompt = prompts.find(p => p.id === test.promptId);
-                    return (
-                      <div key={test.id} className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <LucideFlaskConical className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <Link href={`/a-b-testing/${test.id}`} className="font-medium hover:underline">
-                            {test.name}
-                          </Link>
-                          <p className="text-sm text-muted-foreground">
-                            {prompt?.name || "Unknown prompt"}
-                          </p>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {test.versionIds.length} versions
-                        </div>
-                      </div>
-                    );
-                  })}
+                {activeTestsWithDetails.map((test: ABTestWithDetails) => (
+                  <div key={test.id} className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <LucideFlaskConical className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Link href={`/a-b-testing/${test.id}`} className="font-medium hover:underline">
+                        {test.name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">
+                        {test.prompt.name}
+                      </p>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {test.versions.length} versions
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">

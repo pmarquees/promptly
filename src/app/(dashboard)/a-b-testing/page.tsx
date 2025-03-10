@@ -11,36 +11,14 @@ import { clientPromptStorage, clientAbTestStorage } from "@/lib/store/clientStor
 import { Prompt, ABTest } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { getAllABTests } from "@/lib/services/abTestService";
+import { ABTestWithVersions } from "@/lib/services/abTestService";
 
-export default function ABTestingPage() {
-  const [tests, setTests] = useState<ABTest[]>([]);
-  const [prompts, setPrompts] = useState<Record<string, Prompt>>({});
+export default async function ABTestingPage() {
+  // Fetch A/B tests from the server
+  const tests = await getAllABTests();
 
-  useEffect(() => {
-    // Load A/B tests from localStorage
-    const loadedTests = clientAbTestStorage.getAll();
-    setTests(loadedTests);
-    
-    // Load prompts and create a lookup map
-    const loadedPrompts = clientPromptStorage.getAll();
-    const promptMap: Record<string, Prompt> = {};
-    
-    loadedPrompts.forEach(prompt => {
-      promptMap[prompt.id] = prompt;
-    });
-    
-    setPrompts(promptMap);
-  }, []);
-
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this A/B test? This action cannot be undone.")) {
-      clientAbTestStorage.delete(id);
-      setTests(tests.filter(test => test.id !== id));
-      toast.success("A/B test deleted successfully");
-    }
-  };
-
-  const getTestStatus = (test: ABTest): string => {
+  const getTestStatus = (test: ABTestWithVersions): string => {
     if (!test.isActive) return "Inactive";
     
     const now = new Date();
@@ -90,8 +68,7 @@ export default function ABTestingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tests.map((test) => {
-                  const prompt = prompts[test.promptId];
+                {tests.map((test: ABTestWithVersions) => {
                   const status = getTestStatus(test);
                   
                   return (
@@ -102,15 +79,11 @@ export default function ABTestingPage() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        {prompt ? (
-                          <Link href={`/prompts/${prompt.id}`} className="hover:underline">
-                            {prompt.name}
-                          </Link>
-                        ) : (
-                          "Unknown prompt"
-                        )}
+                        <Link href={`/prompts/${test.promptId}`} className="hover:underline">
+                          {test.prompt.name}
+                        </Link>
                       </TableCell>
-                      <TableCell>{test.versionIds.length}</TableCell>
+                      <TableCell>{test.versions.length}</TableCell>
                       <TableCell>{formatDate(new Date(test.startDate))}</TableCell>
                       <TableCell>
                         {test.endDate ? formatDate(new Date(test.endDate)) : "No end date"}
@@ -135,14 +108,16 @@ export default function ABTestingPage() {
                               <span className="sr-only">Edit</span>
                             </Button>
                           </Link>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
-                            onClick={() => handleDelete(test.id)}
-                          >
-                            <LucideTrash className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          <form action={`/api/a-b-tests/${test.id}/delete`} method="POST">
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              type="submit"
+                            >
+                              <LucideTrash className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </form>
                         </div>
                       </TableCell>
                     </TableRow>
