@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = await params.id;
     
     // Fetch the A/B test from the database
     const test = await prisma.aBTest.findUnique({
@@ -59,7 +59,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = await params.id;
     const body = await request.json();
     
     // Check if the test exists
@@ -113,7 +113,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = await params.id;
     const body = await request.json();
     
     // Check if the test exists

@@ -8,7 +8,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const promptId = params.id;
+  const promptId = await params.id;
   
   try {
     // Check if prompt exists
@@ -43,7 +43,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const promptId = params.id;
+  const promptId = await params.id;
   
   try {
     // Check if prompt exists

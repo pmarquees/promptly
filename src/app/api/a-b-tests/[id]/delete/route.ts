@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const id = await params.id;
     
     // Check if the test exists
     const test = await prisma.aBTest.findUnique({

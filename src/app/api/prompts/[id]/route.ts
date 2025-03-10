@@ -5,7 +5,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const id = await params.id;
   
   // Check if we should use A/B testing
   const useAbTesting = request.nextUrl.searchParams.get("abTest") === "true";
@@ -125,7 +125,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const id = await params.id;
   
   try {
     const body = await request.json();
@@ -210,7 +210,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const id = await params.id;
   
   try {
     const body = await request.json();
@@ -264,7 +264,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const id = await params.id;
   
   try {
     // Check if prompt exists
