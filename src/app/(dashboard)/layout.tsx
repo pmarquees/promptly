@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare } from "lucide-react";
+import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare, LucideHelpCircle } from "lucide-react";
+import { OnboardingModal } from "@/components/OnboardingModal";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({
   children,
@@ -36,6 +38,16 @@ export default function DashboardLayout({
     },
   ];
 
+  // Function to trigger the onboarding modal
+  const showOnboarding = () => {
+    if (typeof window !== 'undefined') {
+      // Reset the onboarding flag
+      localStorage.removeItem('hasSeenOnboarding');
+      // Reload the page to trigger the onboarding flow
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -59,11 +71,21 @@ export default function DashboardLayout({
             </Link>
           ))}
         </nav>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={showOnboarding}
+          title="Show onboarding guide"
+          className="ml-auto md:ml-0"
+        >
+          <LucideHelpCircle className="h-5 w-5" />
+        </Button>
       </header>
       <main className="flex-1 p-4 md:p-6">
         {children}
       </main>
       <Toaster />
+      <OnboardingModal />
     </div>
   );
 } 

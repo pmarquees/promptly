@@ -1,0 +1,7 @@
+<svg width="250" height="200" viewBox="0 0 250 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="250" height="200" rx="10" fill="#F3F4F6" />
+  <circle cx="125" cy="80" r="40" fill="#6366F1" opacity="0.8" />
+  <path d="M125 50C108.431 50 95 63.4315 95 80C95 96.5685 108.431 110 125 110C141.569 110 155 96.5685 155 80C155 63.4315 141.569 50 125 50ZM125 100C114.507 100 106 91.4934 106 81C106 70.5066 114.507 62 125 62C135.493 62 144 70.5066 144 81C144 91.4934 135.493 100 125 100Z" fill="#4F46E5" />
+  <path d="M125 130C102.909 130 85 147.909 85 170H165C165 147.909 147.091 130 125 130Z" fill="#4F46E5" />
+  <text x="125" y="150" font-family="Arial" font-size="16" fill="#111827" text-anchor="middle">Welcome to Promptly</text>
+</svg> 
