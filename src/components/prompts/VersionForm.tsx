@@ -23,6 +23,7 @@ export function VersionForm({ promptId, defaultValues, onSubmit, isEditing = fal
   const [extractedVariables, setExtractedVariables] = useState<string[]>([]);
   const [customVariables, setCustomVariables] = useState<string[]>([]);
   const [newVariable, setNewVariable] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CreateVersionFormValues>({
     resolver: zodResolver(createVersionSchema),
@@ -63,16 +64,24 @@ export function VersionForm({ promptId, defaultValues, onSubmit, isEditing = fal
     setCustomVariables(customVariables.filter(v => v !== variable));
   };
 
-  const handleSubmit = (values: CreateVersionFormValues) => {
-    const version: PromptVersion = {
-      id: isEditing && defaultValues?.id ? defaultValues.id : generateId(),
-      createdAt: isEditing && defaultValues?.createdAt ? new Date(defaultValues.createdAt) : new Date(),
-      triggerCount: isEditing && defaultValues?.triggerCount !== undefined ? defaultValues.triggerCount : 0,
-      performance: isEditing && defaultValues?.performance ? defaultValues.performance : {},
-      ...values,
-    };
+  const handleSubmit = async (values: CreateVersionFormValues) => {
+    setIsSubmitting(true);
     
-    onSubmit(version);
+    try {
+      const version: PromptVersion = {
+        id: isEditing && defaultValues?.id ? defaultValues.id : generateId(),
+        createdAt: isEditing && defaultValues?.createdAt ? new Date(defaultValues.createdAt) : new Date(),
+        triggerCount: isEditing && defaultValues?.triggerCount !== undefined ? defaultValues.triggerCount : 0,
+        performance: isEditing && defaultValues?.performance ? defaultValues.performance : {},
+        ...values,
+      };
+      
+      onSubmit(version);
+    } catch (error) {
+      console.error("Error submitting version:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -171,8 +180,8 @@ export function VersionForm({ promptId, defaultValues, onSubmit, isEditing = fal
         />
         
         <div className="flex justify-end">
-          <Button type="submit">
-            {isEditing ? "Update Version" : "Create Version"}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : isEditing ? "Update Version" : "Create Version"}
           </Button>
         </div>
       </form>

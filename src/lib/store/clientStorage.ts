@@ -4,68 +4,271 @@ import { Prompt, PromptVersion, ABTest } from '@/lib/types';
 // Check if we're running on the client side
 const isClient = typeof window !== 'undefined';
 
-// Client-side storage wrapper
+// Client-side storage wrapper with API fallback
 export const clientPromptStorage = {
-  getAll: () => {
+  getAll: async () => {
     if (!isClient) return [];
-    return promptStorage.getAll();
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch('/api/prompts');
+      if (response.ok) {
+        return await response.json();
+      }
+      // Fall back to localStorage if API fails
+      return promptStorage.getAll();
+    } catch (error) {
+      console.error('Error fetching prompts:', error);
+      return promptStorage.getAll();
+    }
   },
   
-  getById: (id: string) => {
+  getById: async (id: string) => {
     if (!isClient) return undefined;
-    return promptStorage.getById(id);
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch(`/api/prompts/${id}`);
+      if (response.ok) {
+        return await response.json();
+      }
+      // Fall back to localStorage if API fails
+      return promptStorage.getById(id);
+    } catch (error) {
+      console.error(`Error fetching prompt ${id}:`, error);
+      return promptStorage.getById(id);
+    }
   },
   
-  save: (prompt: Prompt) => {
+  save: async (prompt: Prompt) => {
     if (!isClient) return;
-    promptStorage.save(prompt);
+    
+    try {
+      // Try to save to API first
+      const method = prompt.id ? 'PUT' : 'POST';
+      const url = prompt.id ? `/api/prompts/${prompt.id}` : '/api/prompts';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(prompt),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save prompt: ${response.statusText}`);
+      }
+      
+      // Also save to localStorage as backup
+      promptStorage.save(prompt);
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      // Fall back to localStorage
+      promptStorage.save(prompt);
+    }
   },
   
-  delete: (id: string) => {
+  delete: async (id: string) => {
     if (!isClient) return;
-    promptStorage.delete(id);
+    
+    try {
+      // Try to delete from API first
+      const response = await fetch(`/api/prompts/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete prompt: ${response.statusText}`);
+      }
+      
+      // Also delete from localStorage
+      promptStorage.delete(id);
+    } catch (error) {
+      console.error(`Error deleting prompt ${id}:`, error);
+      // Fall back to localStorage
+      promptStorage.delete(id);
+    }
   },
   
-  incrementTriggerCount: (id: string) => {
+  incrementTriggerCount: async (id: string) => {
     if (!isClient) return;
-    promptStorage.incrementTriggerCount(id);
+    
+    try {
+      // Try to increment via API first
+      const response = await fetch(`/api/prompts/${id}/increment`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to increment trigger count: ${response.statusText}`);
+      }
+      
+      // Also update localStorage
+      promptStorage.incrementTriggerCount(id);
+    } catch (error) {
+      console.error(`Error incrementing trigger count for prompt ${id}:`, error);
+      // Fall back to localStorage
+      promptStorage.incrementTriggerCount(id);
+    }
   }
 };
 
 export const clientVersionStorage = {
-  getAll: () => {
+  getAll: async () => {
     if (!isClient) return [];
-    return versionStorage.getAll();
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch('/api/versions');
+      if (response.ok) {
+        return await response.json();
+      }
+      // Fall back to localStorage if API fails
+      return versionStorage.getAll();
+    } catch (error) {
+      console.error('Error fetching versions:', error);
+      return versionStorage.getAll();
+    }
   },
   
-  getById: (id: string) => {
+  getById: async (id: string) => {
     if (!isClient) return undefined;
-    return versionStorage.getById(id);
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch(`/api/versions/${id}`);
+      if (response.ok) {
+        return await response.json();
+      }
+      // Fall back to localStorage if API fails
+      return versionStorage.getById(id);
+    } catch (error) {
+      console.error(`Error fetching version ${id}:`, error);
+      return versionStorage.getById(id);
+    }
   },
   
-  getByPromptId: (promptId: string) => {
+  getByPromptId: async (promptId: string) => {
     if (!isClient) return [];
-    return versionStorage.getByPromptId(promptId);
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch(`/api/prompts/${promptId}/versions`);
+      if (response.ok) {
+        return await response.json();
+      }
+      // Fall back to localStorage if API fails
+      return versionStorage.getByPromptId(promptId);
+    } catch (error) {
+      console.error(`Error fetching versions for prompt ${promptId}:`, error);
+      return versionStorage.getByPromptId(promptId);
+    }
   },
   
-  save: (version: PromptVersion) => {
+  save: async (version: PromptVersion) => {
     if (!isClient) return;
-    versionStorage.save(version);
+    
+    try {
+      // Try to save to API first
+      const method = version.id ? 'PUT' : 'POST';
+      const url = version.id 
+        ? `/api/versions/${version.id}` 
+        : `/api/prompts/${version.promptId}/versions`;
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(version),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save version: ${response.statusText}`);
+      }
+      
+      // Also save to localStorage as backup
+      versionStorage.save(version);
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error saving version:', error);
+      // Fall back to localStorage
+      versionStorage.save(version);
+    }
   },
   
-  delete: (id: string) => {
+  delete: async (id: string) => {
     if (!isClient) return;
-    versionStorage.delete(id);
+    
+    try {
+      // Try to delete from API first
+      const response = await fetch(`/api/versions/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete version: ${response.statusText}`);
+      }
+      
+      // Also delete from localStorage
+      versionStorage.delete(id);
+    } catch (error) {
+      console.error(`Error deleting version ${id}:`, error);
+      // Fall back to localStorage
+      versionStorage.delete(id);
+    }
   },
   
-  incrementTriggerCount: (id: string) => {
+  incrementTriggerCount: async (id: string) => {
     if (!isClient) return;
-    versionStorage.incrementTriggerCount(id);
+    
+    try {
+      // Try to increment via API first
+      const response = await fetch(`/api/versions/${id}/increment`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to increment trigger count: ${response.statusText}`);
+      }
+      
+      // Also update localStorage
+      versionStorage.incrementTriggerCount(id);
+    } catch (error) {
+      console.error(`Error incrementing trigger count for version ${id}:`, error);
+      // Fall back to localStorage
+      versionStorage.incrementTriggerCount(id);
+    }
   },
   
-  updatePerformance: (id: string, metric: string, value: number) => {
+  updatePerformance: async (id: string, metric: string, value: number) => {
     if (!isClient) return;
-    versionStorage.updatePerformance(id, metric, value);
+    
+    try {
+      // Try to update via API first
+      const response = await fetch(`/api/versions/${id}/performance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ metric, value }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update performance: ${response.statusText}`);
+      }
+      
+      // Also update localStorage
+      versionStorage.updatePerformance(id, metric, value);
+    } catch (error) {
+      console.error(`Error updating performance for version ${id}:`, error);
+      // Fall back to localStorage
+      versionStorage.updatePerformance(id, metric, value);
+    }
   }
 };
 
@@ -102,18 +305,72 @@ export const clientAbTestStorage = {
 };
 
 export const clientPromptlyApi = {
-  getPrompt: (id: string) => {
+  getPrompt: async (id: string) => {
     if (!isClient) return null;
-    return promptlyApi.getPrompt(id);
+    
+    try {
+      // Try to fetch from API first
+      const response = await fetch(`/api/prompts/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          content: data.content,
+          variables: data.variables,
+        };
+      }
+      // Fall back to localStorage if API fails
+      return promptlyApi.getPrompt(id);
+    } catch (error) {
+      console.error(`Error fetching prompt ${id}:`, error);
+      return promptlyApi.getPrompt(id);
+    }
   },
   
-  getPromptForABTest: (promptId: string) => {
+  getPromptForABTest: async (promptId: string) => {
     if (!isClient) return null;
-    return promptlyApi.getPromptForABTest(promptId);
+    
+    try {
+      // Try to fetch from API first with abTest flag
+      const response = await fetch(`/api/prompts/${promptId}?abTest=true`);
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          content: data.content,
+          variables: data.variables,
+          versionId: data.versionId,
+        };
+      }
+      // Fall back to localStorage if API fails
+      return promptlyApi.getPromptForABTest(promptId);
+    } catch (error) {
+      console.error(`Error fetching prompt ${promptId} for AB test:`, error);
+      return promptlyApi.getPromptForABTest(promptId);
+    }
   },
   
-  recordMetric: (promptId: string, versionId: string, metric: string, value: number) => {
+  recordMetric: async (promptId: string, versionId: string, metric: string, value: number) => {
     if (!isClient) return;
-    promptlyApi.recordMetric(promptId, versionId, metric, value);
+    
+    try {
+      // Try to record via API first
+      const response = await fetch(`/api/prompts/${promptId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ versionId, metric, value }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to record metric: ${response.statusText}`);
+      }
+      
+      // Also update localStorage
+      promptlyApi.recordMetric(promptId, versionId, metric, value);
+    } catch (error) {
+      console.error(`Error recording metric for prompt ${promptId}, version ${versionId}:`, error);
+      // Fall back to localStorage
+      promptlyApi.recordMetric(promptId, versionId, metric, value);
+    }
   }
 }; 
