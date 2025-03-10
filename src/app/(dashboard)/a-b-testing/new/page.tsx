@@ -8,47 +8,140 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LucideArrowLeft } from "lucide-react";
 import { ABTestForm } from "@/components/a-b-testing/ABTestForm";
-import { clientPromptStorage, clientVersionStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
-import { Prompt, PromptVersion, ABTest } from "@/lib/types";
 import { toast } from "sonner";
+
+// Define types
+interface Prompt {
+  id: string;
+  name: string;
+  variables: string[];
+}
+
+interface PromptVersion {
+  id: string;
+  promptId: string;
+  name: string;
+  content: string;
+  variables: string[];
+  createdAt: Date;
+  createdBy: string;
+  isActive: boolean;
+  triggerCount: number;
+  performance?: Record<string, number>;
+}
+
+interface ABTest {
+  id: string;
+  name: string;
+  description?: string;
+  promptId: string;
+  versionIds: string[];
+  distribution: Record<string, number>;
+  startDate: Date;
+  endDate?: Date;
+  isActive: boolean;
+  metrics: string[];
+  results?: Record<string, Record<string, number>>;
+}
 
 export default function NewABTestPage() {
   const router = useRouter();
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [versions, setVersions] = useState<PromptVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load prompts from localStorage
-    const loadedPrompts = clientPromptStorage.getAll();
-    setPrompts(loadedPrompts);
+    // Load prompts from API
+    const fetchPrompts = async () => {
+      try {
+        const response = await fetch('/api/prompts');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setPrompts(data);
+      } catch (err) {
+        console.error("Error fetching prompts:", err);
+        setError("Failed to load prompts");
+        toast.error("Failed to load prompts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrompts();
   }, []);
 
   useEffect(() => {
     if (selectedPromptId) {
-      // Load versions for the selected prompt
-      const loadedVersions = clientVersionStorage.getByPromptId(selectedPromptId);
-      setVersions(loadedVersions);
+      // Load versions for the selected prompt from API
+      const fetchVersions = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`/api/prompts/${selectedPromptId}/versions`);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          setVersions(data);
+        } catch (err) {
+          console.error("Error fetching versions:", err);
+          setError("Failed to load versions");
+          toast.error("Failed to load versions");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchVersions();
     } else {
       setVersions([]);
     }
   }, [selectedPromptId]);
 
-  const handleSubmit = (test: ABTest) => {
-    try {
-      // Save the A/B test to localStorage
-      clientAbTestStorage.save(test);
-      
-      // Show success message
-      toast.success("A/B test created successfully");
-      
-      // Redirect to the A/B tests list
-      router.push("/a-b-testing");
-    } catch (error) {
-      console.error("Error creating A/B test:", error);
-      toast.error("Failed to create A/B test");
-    }
+  const handleSubmit = (values: ABTest) => {
+    const submitTest = async () => {
+      try {
+        // Save the A/B test via API
+        const response = await fetch('/api/a-b-tests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...values,
+            versionIds: values.versionIds,
+            weights: Object.values(values.distribution)
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Show success message
+        toast.success("A/B test created successfully");
+        
+        // Redirect to the A/B tests list
+        router.push("/a-b-testing");
+      } catch (error) {
+        console.error("Error creating A/B test:", error);
+        toast.error("Failed to create A/B test");
+      }
+    };
+
+    submitTest();
   };
+
+  if (loading && !selectedPromptId) {
+    return <div className="flex justify-center items-center h-[60vh]">Loading prompts...</div>;
+  }
+
+  if (error && !selectedPromptId) {
+    return <div className="flex justify-center items-center h-[60vh] text-red-500">{error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -92,7 +185,11 @@ export default function NewABTestPage() {
               </div>
               
               {selectedPromptId ? (
-                versions.length >= 2 ? (
+                loading ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading versions...</p>
+                  </div>
+                ) : versions.length >= 2 ? (
                   <ABTestForm
                     promptId={selectedPromptId}
                     versions={versions}

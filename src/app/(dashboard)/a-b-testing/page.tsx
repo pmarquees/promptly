@@ -7,16 +7,64 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LucidePlus, LucideFlaskConical, LucideTrash, LucideEdit } from "lucide-react";
-import { clientPromptStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
-import { Prompt, ABTest } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
-import { getAllABTests } from "@/lib/services/abTestService";
-import { ABTestWithVersions } from "@/lib/services/abTestService";
 
-export default async function ABTestingPage() {
-  // Fetch A/B tests from the server
-  const tests = await getAllABTests();
+// Define the type for A/B tests
+interface ABTestWithVersions {
+  id: string;
+  name: string;
+  description: string | null;
+  promptId: string;
+  startDate: Date;
+  endDate: Date | null;
+  isActive: boolean;
+  metrics: string[];
+  results: any | null;
+  createdBy: string;
+  versions: {
+    id: string;
+    abTestId: string;
+    versionId: string;
+    weight: number;
+    version: {
+      id: string;
+      name: string;
+      content: string;
+      variables: string[];
+    };
+  }[];
+  prompt: {
+    id: string;
+    name: string;
+  };
+}
+
+export default function ABTestingPage() {
+  const [tests, setTests] = useState<ABTestWithVersions[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        const response = await fetch('/api/a-b-tests');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setTests(data);
+      } catch (err) {
+        console.error("Error fetching A/B tests:", err);
+        setError("Failed to load A/B tests");
+        toast.error("Failed to load A/B tests");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTests();
+  }, []);
 
   const getTestStatus = (test: ABTestWithVersions): string => {
     if (!test.isActive) return "Inactive";
@@ -33,6 +81,14 @@ export default async function ABTestingPage() {
     
     return "Running";
   };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-[60vh]">Loading A/B tests...</div>;
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-[60vh] text-red-500">{error}</div>;
+  }
 
   return (
     <div className="space-y-6">
