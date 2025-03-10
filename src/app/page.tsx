@@ -5,10 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LucideFlaskConical, LucideMessageSquare, LucidePlus } from "lucide-react";
-import { clientPromptStorage, clientVersionStorage, clientAbTestStorage } from "@/lib/store/clientStorage";
-import { Prompt, PromptVersion, ABTest } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
-import { getDashboardMetrics } from "@/lib/services/dashboardService";
 
 // Define types for the data structures
 interface PromptWithUser {
@@ -30,8 +27,55 @@ interface ABTestWithDetails {
   versions: Array<any>;
 }
 
-export default async function Dashboard() {
-  // Fetch data from the server
+interface DashboardMetrics {
+  totalPrompts: number;
+  totalVersions: number;
+  totalTriggers: number;
+  activeTests: number;
+  recentPrompts: PromptWithUser[];
+  activeTestsWithDetails: ABTestWithDetails[];
+}
+
+export default function Dashboard() {
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalPrompts: 0,
+    totalVersions: 0,
+    totalTriggers: 0,
+    activeTests: 0,
+    recentPrompts: [],
+    activeTestsWithDetails: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch('/api/dashboard/metrics');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setMetrics(data);
+      } catch (err) {
+        console.error("Error fetching dashboard metrics:", err);
+        setError("Failed to load dashboard metrics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMetrics();
+  }, []);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-[60vh]">Loading dashboard data...</div>;
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-[60vh] text-red-500">{error}</div>;
+  }
+
   const {
     totalPrompts,
     totalVersions,
@@ -39,7 +83,7 @@ export default async function Dashboard() {
     activeTests,
     recentPrompts,
     activeTestsWithDetails
-  } = await getDashboardMetrics();
+  } = metrics;
 
   return (
     <div className="space-y-6">
