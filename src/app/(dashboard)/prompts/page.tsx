@@ -11,10 +11,18 @@ import { Prompt } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Extended Prompt type that includes user information from the API
+interface PromptWithUser extends Prompt {
+  user?: {
+    name: string | null;
+  };
+}
+
 export default function PromptsPage() {
-  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [prompts, setPrompts] = useState<PromptWithUser[]>([]);
   const [versions, setVersions] = useState<Record<string, number>>({}); // promptId -> version count
   const [isLoading, setIsLoading] = useState(true);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({}); // userId -> name
 
   useEffect(() => {
     // Load prompts from API
@@ -35,6 +43,14 @@ export default function PromptsPage() {
               versionCounts[prompt.id] = prompt.versions.length;
             } else {
               versionCounts[prompt.id] = 0;
+            }
+
+            // Store creator names if available
+            if (prompt.user && prompt.user.name) {
+              setCreatorNames(prev => ({
+                ...prev,
+                [prompt.createdBy]: prompt.user.name
+              }));
             }
           }
           
@@ -113,6 +129,7 @@ export default function PromptsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Variables</TableHead>
+                  <TableHead>Created By</TableHead>
                   <TableHead>Versions</TableHead>
                   <TableHead>Last Updated</TableHead>
                   <TableHead>Trigger Count</TableHead>
@@ -135,6 +152,9 @@ export default function PromptsPage() {
                       ) : (
                         <span className="text-muted-foreground">None</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {prompt.user?.name || creatorNames[prompt.createdBy] || "Anonymous"}
                     </TableCell>
                     <TableCell>{versions[prompt.id] || 0}</TableCell>
                     <TableCell>{formatDate(new Date(prompt.updatedAt))}</TableCell>

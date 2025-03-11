@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/auth/session-provider";
 import { UserMenu } from "@/components/auth/user-menu";
 import Link from "next/link";
+import { NavItems } from "@/components/NavItems";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +38,10 @@ export default function RootLayout({
                 <Link href="/" className="flex items-center gap-2 font-bold">
                   Promply
                 </Link>
-                <UserMenu />
+                <div className="flex items-center gap-6">
+                  <NavItems />
+                  <UserMenu />
+                </div>
               </div>
             </header>
             <main className="flex-1">{children}</main>
