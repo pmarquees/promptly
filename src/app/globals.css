@@ -43,6 +43,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-orange: var(--orange);
+  --color-orange-foreground: var(--orange-foreground);
+  --color-orange-light: var(--orange-light);
+  --color-orange-dark: var(--orange-dark);
 }
 
 :root {
@@ -79,6 +83,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Orange accent colors */
+  --orange: oklch(0.7 0.2 60);
+  --orange-foreground: oklch(1 0 0);
+  --orange-light: oklch(0.85 0.15 60);
+  --orange-dark: oklch(0.6 0.25 60);
+  --orange-rgb: 255, 125, 0;
 }
 
 .dark {
@@ -114,6 +125,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  
+  /* Orange accent colors for dark mode */
+  --orange: oklch(0.75 0.25 60);
+  --orange-foreground: oklch(0.145 0 0);
+  --orange-light: oklch(0.85 0.2 60);
+  --orange-dark: oklch(0.65 0.3 60);
+  --orange-rgb: 255, 145, 20;
 }
 
 @layer base {
@@ -123,4 +141,48 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Orange accent utility classes */
+.text-orange {
+  color: var(--orange);
+}
+
+.bg-orange {
+  background-color: var(--orange);
+}
+
+.border-orange {
+  border-color: var(--orange);
+}
+
+.hover-orange:hover {
+  color: var(--orange);
+}
+
+.hover-bg-orange:hover {
+  background-color: var(--orange-light);
+}
+
+/* Animation classes */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
 }

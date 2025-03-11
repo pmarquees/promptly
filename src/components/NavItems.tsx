@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 
 export function NavItems() {
   const pathname = usePathname();
@@ -38,23 +39,44 @@ export function NavItems() {
     },
   ];
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariant = {
+    hidden: { opacity: 0, y: -10 },
+    show: { opacity: 1, y: 0 }
+  };
+
   return (
-    <nav className="hidden md:flex items-center gap-6">
-      {navItems.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "flex items-center gap-2 text-sm font-medium transition-colors hover:text-foreground/80",
-            pathname === item.href
-              ? "text-foreground"
-              : "text-foreground/60"
-          )}
-        >
-          <item.icon className="h-4 w-4" />
-          {item.name}
-        </Link>
+    <motion.nav 
+      className="hidden md:flex items-center gap-6"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      {navItems.map((navItem) => (
+        <motion.div key={navItem.href} variants={itemVariant}>
+          <Link
+            href={navItem.href}
+            className={cn(
+              "flex items-center gap-2 text-sm font-medium transition-colors hover:text-orange",
+              pathname === navItem.href
+                ? "text-orange"
+                : "text-foreground/60"
+            )}
+          >
+            <navItem.icon className="h-4 w-4" />
+            {navItem.name}
+          </Link>
+        </motion.div>
       ))}
-    </nav>
+    </motion.nav>
   );
 } 

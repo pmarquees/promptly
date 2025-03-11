@@ -33,9 +33,9 @@ export default function RootLayout({
       >
         <SessionProvider>
           <div className="flex min-h-screen flex-col">
-            <header className="border-b">
+            <header className="border-b border-orange/10">
               <div className="container flex h-16 items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 font-bold">
+                <Link href="/" className="flex items-center gap-2 font-bold text-orange hover-orange">
                   Promply
                 </Link>
                 <div className="flex items-center gap-6">

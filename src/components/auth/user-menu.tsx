@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 export function UserMenu() {
   const { data: session, status } = useSession();
@@ -29,40 +30,69 @@ export function UserMenu() {
   if (status === "unauthenticated") {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
+        <Button variant="ghost" size="sm" asChild className="hover:text-orange">
           <Link href="/auth/login">Sign In</Link>
         </Button>
-        <Button size="sm" asChild>
+        <Button size="sm" asChild className="bg-orange hover:bg-orange-light border-orange">
           <Link href="/auth/register">Sign Up</Link>
         </Button>
       </div>
     );
   }
 
+  const menuItemVariants = {
+    hidden: { opacity: 0, y: -5 },
+    visible: { opacity: 1, y: 0 },
+    hover: { color: "var(--orange)", x: 2 }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          {session?.user?.name || session?.user?.email}
-        </Button>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button variant="ghost" size="sm" className="relative hover:text-orange">
+            {session?.user?.name || session?.user?.email}
+          </Button>
+        </motion.div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard">Dashboard</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/profile">Profile</Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={async () => {
-            await signOut({ redirect: false });
-            toast.success("Signed out successfully");
-            router.push("/");
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: {
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
           }}
         >
-          Sign Out
-        </DropdownMenuItem>
+          <motion.div variants={menuItemVariants} whileHover="hover">
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </DropdownMenuItem>
+          </motion.div>
+          
+          <motion.div variants={menuItemVariants} whileHover="hover">
+            <DropdownMenuItem asChild>
+              <Link href="/profile">Profile</Link>
+            </DropdownMenuItem>
+          </motion.div>
+          
+          <DropdownMenuSeparator />
+          
+          <motion.div variants={menuItemVariants} whileHover="hover">
+            <DropdownMenuItem
+              onClick={async () => {
+                await signOut({ redirect: false });
+                toast.success("Signed out successfully");
+                router.push("/");
+              }}
+            >
+              Sign Out
+            </DropdownMenuItem>
+          </motion.div>
+        </motion.div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
