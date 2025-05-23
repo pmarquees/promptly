@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateId } from "@/lib/utils";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Fetch all A/B tests from the database
     const tests = await prisma.aBTest.findMany({

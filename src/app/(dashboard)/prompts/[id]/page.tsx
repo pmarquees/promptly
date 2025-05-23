@@ -122,10 +122,18 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
     toast.success("Code snippet copied to clipboard");
   };
 
-  if (!prompt) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
         <p>Loading prompt...</p>
+      </div>
+    );
+  }
+
+  if (!prompt) {
+    return (
+      <div className="flex items-center justify-center h-[400px]">
+        <p>Prompt not found.</p>
       </div>
     );
   }

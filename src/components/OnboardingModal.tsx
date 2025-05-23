@@ -119,7 +119,7 @@ export function OnboardingModal() {
   // Expose the openOnboarding function to the window for easy access
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // @ts-ignore
+      // @ts-expect-error - Adding function to global window object for testing purposes
       window.openOnboarding = openOnboarding;
     }
   }, []);

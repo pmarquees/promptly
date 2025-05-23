@@ -148,7 +148,7 @@ export default function PromptsPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <p className="text-muted-foreground mb-4">You haven't created any prompts yet.</p>
+              <p className="text-muted-foreground mb-4">You haven&apos;t created any prompts yet.</p>
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

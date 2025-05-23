@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 export type ABTestWithVersions = {
   id: string;
@@ -10,7 +9,7 @@ export type ABTestWithVersions = {
   endDate: Date | null;
   isActive: boolean;
   metrics: string[];
-  results: any | null;
+  results: Record<string, Record<string, number>> | null;
   createdBy: string;
   versions: {
     id: string;

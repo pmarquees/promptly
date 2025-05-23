@@ -20,7 +20,7 @@ interface ABTestWithVersions {
   endDate: Date | null;
   isActive: boolean;
   metrics: string[];
-  results: any | null;
+  results: Record<string, unknown> | null;
   createdBy: string;
   versions: {
     id: string;

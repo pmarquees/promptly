@@ -24,7 +24,7 @@ interface ABTestWithDetails {
   prompt: {
     name: string;
   };
-  versions: Array<any>;
+  versions: Array<{ id: string; weight: number }>;
 }
 
 interface DashboardMetrics {

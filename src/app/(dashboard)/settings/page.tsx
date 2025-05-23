@@ -29,9 +29,14 @@ export default function SettingsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [showKey, setShowKey] = useState<{ [keyId: string]: boolean }>({});
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     fetchApiKeys();
+    // Set the origin after component mounts on client side
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
   }, []);
 
   const fetchApiKeys = async () => {
@@ -318,7 +323,7 @@ export default function SettingsPage() {
             <div>
               <h4 className="font-medium mb-2">Example Request</h4>
               <div className="bg-muted p-3 rounded font-mono text-sm whitespace-pre">
-{`curl -X GET "${window.location.origin}/api/prompts" \\
+{`curl -X GET "${origin}/api/prompts" \\
   -H "Authorization: Bearer your-api-key"`}
               </div>
             </div>
