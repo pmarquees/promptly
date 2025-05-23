@@ -6,6 +6,8 @@ import { LucideHelpCircle } from "lucide-react";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/PageTransition";
+import { NavItems } from "@/components/NavItems";
+import { UserMenu } from "@/components/auth/user-menu";
 import { motion } from "framer-motion";
 
 export default function DashboardLayout({
@@ -37,7 +39,8 @@ export default function DashboardLayout({
             Promptly
           </motion.span>
         </Link>
-        <div className="ml-auto">
+        <NavItems />
+        <div className="ml-auto flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -47,6 +50,7 @@ export default function DashboardLayout({
           >
             <LucideHelpCircle className="h-5 w-5" />
           </Button>
+          <UserMenu />
         </div>
       </header>
       <main className="flex-1 p-10">

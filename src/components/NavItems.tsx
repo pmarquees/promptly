@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare } from "lucide-react";
+import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare, LucideSettings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -36,6 +36,11 @@ export function NavItems() {
       name: "Integration",
       href: "/integration",
       icon: LucideCode,
+    },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: LucideSettings,
     },
   ];
 
