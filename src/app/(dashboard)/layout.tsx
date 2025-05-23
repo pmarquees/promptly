@@ -26,8 +26,8 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <div className="flex min-h-screen flex-col bg-black text-white">
+      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-white/10 bg-black px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <motion.span 
             className="text-xl font-bold text-orange"
@@ -46,17 +46,19 @@ export default function DashboardLayout({
             size="icon" 
             onClick={showOnboarding}
             title="Show onboarding guide"
-            className="hover-orange"
+            className="hover-orange text-white hover:text-orange"
           >
             <LucideHelpCircle className="h-5 w-5" />
           </Button>
           <UserMenu />
         </div>
       </header>
-      <main className="flex-1 p-10">
-        <PageTransition>
-          {children}
-        </PageTransition>
+      <main className="flex-1 flex items-center justify-center p-10">
+        <div className="w-full max-w-7xl">
+          <PageTransition>
+            {children}
+          </PageTransition>
+        </div>
       </main>
       <Toaster />
       <OnboardingModal />

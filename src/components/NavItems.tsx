@@ -74,7 +74,7 @@ export function NavItems() {
               "flex items-center gap-2 text-sm font-medium transition-colors hover:text-orange",
               pathname === navItem.href
                 ? "text-orange"
-                : "text-foreground/60"
+                : "text-white/70 hover:text-white"
             )}
           >
             <navItem.icon className="h-4 w-4" />

@@ -30,10 +30,10 @@ export function UserMenu() {
   if (status === "unauthenticated") {
     return (
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild className="hover:text-orange">
+        <Button variant="ghost" size="sm" asChild className="hover:text-orange text-white">
           <Link href="/auth/login">Sign In</Link>
         </Button>
-        <Button size="sm" asChild className="bg-orange hover:bg-orange-light border-orange">
+        <Button size="sm" asChild className="bg-orange hover:bg-orange-light border-orange text-white">
           <Link href="/auth/register">Sign Up</Link>
         </Button>
       </div>
@@ -50,7 +50,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="ghost" size="sm" className="relative hover:text-orange">
+          <Button variant="ghost" size="sm" className="relative hover:text-orange text-white">
             {session?.user?.name || session?.user?.email}
           </Button>
         </motion.div>
