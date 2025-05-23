@@ -75,7 +75,7 @@ export function UserMenu() {
           
           <motion.div variants={menuItemVariants} whileHover="hover">
             <DropdownMenuItem asChild>
-              <Link href="/profile">Profile</Link>
+              <Link href="/settings">Settings</Link>
             </DropdownMenuItem>
           </motion.div>
           

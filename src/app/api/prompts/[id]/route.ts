@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateApiKey } from "@/lib/apiAuth";
 
 export async function GET(
   request: NextRequest,
@@ -7,13 +8,25 @@ export async function GET(
 ) {
   const id = await params.id;
   
+  // Validate API key authentication
+  const authResult = await validateApiKey(request);
+  if (!authResult.valid) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
+  }
+  
   // Check if we should use A/B testing
   const useAbTesting = request.nextUrl.searchParams.get("abTest") === "true";
   
   try {
-    // Fetch the prompt from the database
-    const prompt = await prisma.prompt.findUnique({
-      where: { id },
+    // Fetch the prompt from the database (only for the authenticated user)
+    const prompt = await prisma.prompt.findFirst({
+      where: { 
+        id,
+        createdBy: authResult.userId
+      },
       include: {
         versions: {
           where: { isActive: true },
@@ -127,6 +140,15 @@ export async function POST(
 ) {
   const id = await params.id;
   
+  // Validate API key authentication
+  const authResult = await validateApiKey(request);
+  if (!authResult.valid) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
+  }
+  
   try {
     const body = await request.json();
     const { versionId, metric, value } = body;
@@ -212,6 +234,15 @@ export async function PUT(
 ) {
   const id = await params.id;
   
+  // Validate API key authentication
+  const authResult = await validateApiKey(request);
+  if (!authResult.valid) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
+  }
+  
   try {
     const body = await request.json();
     
@@ -223,9 +254,12 @@ export async function PUT(
       );
     }
     
-    // Check if prompt exists
-    const existingPrompt = await prisma.prompt.findUnique({
-      where: { id },
+    // Check if prompt exists and belongs to the user
+    const existingPrompt = await prisma.prompt.findFirst({
+      where: { 
+        id,
+        createdBy: authResult.userId 
+      },
     });
     
     if (!existingPrompt) {
@@ -266,10 +300,22 @@ export async function DELETE(
 ) {
   const id = await params.id;
   
+  // Validate API key authentication
+  const authResult = await validateApiKey(request);
+  if (!authResult.valid) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
+  }
+  
   try {
-    // Check if prompt exists
-    const existingPrompt = await prisma.prompt.findUnique({
-      where: { id },
+    // Check if prompt exists and belongs to the user
+    const existingPrompt = await prisma.prompt.findFirst({
+      where: { 
+        id,
+        createdBy: authResult.userId 
+      },
     });
     
     if (!existingPrompt) {

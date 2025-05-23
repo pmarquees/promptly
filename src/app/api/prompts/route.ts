@@ -3,10 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { generateId } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { validateApiKey } from "@/lib/apiAuth";
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all prompts from the database
+    // Validate API key authentication
+    const authResult = await validateApiKey(request);
+    if (!authResult.valid) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: 401 }
+      );
+    }
+
+    // Fetch all prompts from the database for the authenticated user
     const prompts = await prisma.prompt.findMany({
       select: {
         id: true,
@@ -23,7 +33,8 @@ export async function GET(request: NextRequest) {
         tags: true
       },
       where: {
-        isActive: true
+        isActive: true,
+        createdBy: authResult.userId
       },
       orderBy: {
         updatedAt: 'desc'
@@ -42,6 +53,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate API key authentication
+    const authResult = await validateApiKey(request);
+    if (!authResult.valid) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     
     // Validate required fields
@@ -55,31 +75,6 @@ export async function POST(request: NextRequest) {
     // Generate ID if not provided
     const id = body.id || generateId();
     
-    // Get the current user session
-    const session = await getServerSession(authOptions);
-    let userId = session?.user?.id;
-    
-    // If no user is authenticated, use a default user or create one
-    if (!userId) {
-      // Find or create a default user
-      const defaultUser = await prisma.user.findFirst({
-        where: { email: "anonymous@example.com" }
-      });
-      
-      if (defaultUser) {
-        userId = defaultUser.id;
-      } else {
-        // Create a default user if none exists
-        const newUser = await prisma.user.create({
-          data: {
-            name: "Anonymous",
-            email: "anonymous@example.com",
-          }
-        });
-        userId = newUser.id;
-      }
-    }
-    
     // Create the prompt in the database
     const prompt = await prisma.prompt.create({
       data: {
@@ -88,7 +83,7 @@ export async function POST(request: NextRequest) {
         description: body.description || "",
         content: body.content,
         variables: body.variables || [],
-        createdBy: userId,
+        createdBy: authResult.userId!,
         isActive: body.isActive !== undefined ? body.isActive : true,
         triggerCount: 0,
         tags: body.tags || [],
