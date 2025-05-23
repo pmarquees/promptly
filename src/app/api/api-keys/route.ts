@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateApiKey } from "@/lib/apiAuth";
+import { ensureUserExists } from "@/lib/userUtils";
 
 export async function GET() {
   try {
@@ -15,9 +16,12 @@ export async function GET() {
       );
     }
     
+    // Ensure the user exists in the database
+    const user = await ensureUserExists(session);
+    
     const apiKeys = await prisma.apiKey.findMany({
       where: {
-        userId: session.user.id,
+        userId: user.id,
         isActive: true
       },
       select: {
@@ -61,6 +65,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Ensure the user exists in the database
+    const user = await ensureUserExists(session);
+
     const body = await request.json();
     const { name, expiresAt } = body;
     
@@ -96,7 +103,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         key,
-        userId: session.user.id,
+        userId: user.id,
         expiresAt: expirationDate
       }
     });
