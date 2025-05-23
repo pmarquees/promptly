@@ -141,6 +141,54 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Force dark theme */
+  :root {
+    color-scheme: dark;
+  }
+  
+  /* Override card backgrounds for better visibility on black */
+  .bg-card {
+    background-color: oklch(0.25 0 0) !important;
+  }
+  
+  .text-card-foreground {
+    color: oklch(0.985 0 0) !important;
+  }
+  
+  .text-muted-foreground {
+    color: oklch(0.7 0 0) !important;
+  }
+  
+  .border {
+    border-color: oklch(0.4 0 0) !important;
+  }
+  
+  /* Input styling for black background */
+  input[data-slot="input"] {
+    background-color: oklch(0.2 0 0) !important;
+    border-color: oklch(0.4 0 0) !important;
+    color: white !important;
+  }
+  
+  input[data-slot="input"]:focus {
+    border-color: var(--orange) !important;
+    box-shadow: 0 0 0 3px var(--orange-light) !important;
+  }
+  
+  input[data-slot="input"]::placeholder {
+    color: oklch(0.6 0 0) !important;
+  }
+  
+  /* Button styling improvements */
+  button[data-slot="button"] {
+    color: white !important;
+  }
+  
+  /* Label styling */
+  label {
+    color: white !important;
+  }
 }
 
 /* Orange accent utility classes */
