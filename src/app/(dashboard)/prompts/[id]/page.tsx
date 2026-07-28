@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HighlightedPromptText } from "@/components/prompts/HighlightedPromptText";
 import { Prompt, PromptVersion } from "@/lib/types";
 import {
   formatDate,
@@ -43,13 +44,7 @@ function PromptContent({ content }: { content: string }) {
         01
       </div>
       <pre>
-        {content.split(/(\{\{[^}]+\}\})/g).map((part, index) =>
-          part.startsWith("{{") ? (
-            <mark key={`${part}-${index}`}>{part}</mark>
-          ) : (
-            part
-          )
-        )}
+        <HighlightedPromptText content={content} />
       </pre>
     </div>
   );
@@ -463,7 +458,9 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
                           <span>Current</span>
                         ) : null}
                       </div>
-                      <p>{version.content}</p>
+                      <p>
+                        <HighlightedPromptText content={version.content} />
+                      </p>
                     </div>
                     <dl>
                       <div>

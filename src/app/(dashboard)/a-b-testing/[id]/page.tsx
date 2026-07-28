@@ -10,6 +10,7 @@ import {
   LucideCopy,
 } from "lucide-react";
 import { toast } from "sonner";
+import { HighlightedPromptText } from "@/components/prompts/HighlightedPromptText";
 import { formatDate } from "@/lib/utils";
 
 interface TestVersion {
@@ -101,13 +102,7 @@ function isLowerBetter(metric: string) {
 function PromptExcerpt({ content }: { content: string }) {
   return (
     <pre className="ab-prompt-excerpt">
-      {content.split(/(\{\{[^}]+\}\})/g).map((part, index) =>
-        part.startsWith("{{") ? (
-          <mark key={`${part}-${index}`}>{part}</mark>
-        ) : (
-          part
-        )
-      )}
+      <HighlightedPromptText content={content} />
     </pre>
   );
 }

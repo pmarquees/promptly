@@ -1,29 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  LucideCheck,
+  LucideEqual,
+  LucidePlus,
+  LucideX,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { LucideX, LucidePlus } from "lucide-react";
-import { CreateABTestFormValues, createABTestSchema, ABTest, PromptVersion } from "@/lib/types";
+import { HighlightedPromptText } from "@/components/prompts/HighlightedPromptText";
+import {
+  ABTest,
+  CreateABTestFormValues,
+  createABTestSchema,
+  PromptVersion,
+} from "@/lib/types";
 import { generateId } from "@/lib/utils";
 
 interface ABTestFormProps {
   promptId: string;
+  promptName: string;
   versions: PromptVersion[];
   defaultValues?: Partial<ABTest>;
   onSubmit: (values: ABTest) => void;
   isEditing?: boolean;
 }
 
-export function ABTestForm({ promptId, versions, defaultValues, onSubmit, isEditing = false }: ABTestFormProps) {
+const RECOMMENDED_METRICS = [
+  {
+    id: "success_rate",
+    label: "Success rate",
+    description: "Share of runs that meet the intended outcome.",
+  },
+  {
+    id: "user_rating",
+    label: "User rating",
+    description: "Average quality score supplied by your product.",
+  },
+  {
+    id: "latency_ms",
+    label: "Latency",
+    description: "Time to complete a prompt run, in milliseconds.",
+  },
+] as const;
+
+function distributeEvenly(versionIds: string[]) {
+  if (versionIds.length === 0) return {};
+  const weight = 1 / versionIds.length;
+  return Object.fromEntries(versionIds.map((id) => [id, weight]));
+}
+
+export function ABTestForm({
+  promptId,
+  promptName,
+  versions,
+  defaultValues,
+  onSubmit,
+  isEditing = false,
+}: ABTestFormProps) {
   const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
-  const [distributions, setDistributions] = useState<Record<string, number>>({});
+  const [distributions, setDistributions] = useState<Record<string, number>>(
+    {}
+  );
   const [metrics, setMetrics] = useState<string[]>([]);
   const [newMetric, setNewMetric] = useState("");
 
@@ -42,109 +93,85 @@ export function ABTestForm({ promptId, versions, defaultValues, onSubmit, isEdit
     },
   });
 
-  // Initialize selected versions and distributions from default values
   useEffect(() => {
     if (isEditing && defaultValues) {
-      if (defaultValues.versionIds) {
-        setSelectedVersions(defaultValues.versionIds);
-      }
-      
-      if (defaultValues.distribution) {
-        setDistributions(defaultValues.distribution);
-      }
-      
-      if (defaultValues.metrics) {
-        setMetrics(defaultValues.metrics);
-      }
+      const initialVersions = defaultValues.versionIds || [];
+      setSelectedVersions(initialVersions);
+      setDistributions(
+        defaultValues.distribution || distributeEvenly(initialVersions)
+      );
+      setMetrics(defaultValues.metrics || []);
+      return;
     }
-  }, [isEditing, defaultValues]);
 
-  // Update form values when selected versions or distributions change
+    const initialVersions = versions.slice(0, 2).map((version) => version.id);
+    setSelectedVersions(initialVersions);
+    setDistributions(distributeEvenly(initialVersions));
+    setMetrics(RECOMMENDED_METRICS.map((metric) => metric.id));
+  }, [defaultValues, isEditing, versions]);
+
   useEffect(() => {
-    form.setValue("versionIds", selectedVersions);
-    form.setValue("distribution", distributions);
-  }, [selectedVersions, distributions, form]);
+    form.setValue("promptId", promptId);
+    form.setValue("versionIds", selectedVersions, { shouldValidate: true });
+    form.setValue("distribution", distributions, { shouldValidate: true });
+  }, [distributions, form, promptId, selectedVersions]);
 
-  // Update form values when metrics change
   useEffect(() => {
-    form.setValue("metrics", metrics);
-  }, [metrics, form]);
+    form.setValue("metrics", metrics, { shouldValidate: true });
+  }, [form, metrics]);
 
-  const handleAddVersion = (versionId: string) => {
-    if (!selectedVersions.includes(versionId)) {
-      const newSelectedVersions = [...selectedVersions, versionId];
-      setSelectedVersions(newSelectedVersions);
-      
-      // Distribute evenly
-      const evenDistribution = 1 / newSelectedVersions.length;
-      const newDistributions: Record<string, number> = {};
-      
-      newSelectedVersions.forEach(id => {
-        newDistributions[id] = evenDistribution;
-      });
-      
-      setDistributions(newDistributions);
-    }
-  };
+  const selectedVersionDetails = useMemo(
+    () =>
+      selectedVersions
+        .map((id) => versions.find((version) => version.id === id))
+        .filter((version): version is PromptVersion => Boolean(version)),
+    [selectedVersions, versions]
+  );
 
-  const handleRemoveVersion = (versionId: string) => {
-    const newSelectedVersions = selectedVersions.filter(id => id !== versionId);
-    setSelectedVersions(newSelectedVersions);
-    
-    if (newSelectedVersions.length > 0) {
-      // Redistribute evenly
-      const evenDistribution = 1 / newSelectedVersions.length;
-      const newDistributions: Record<string, number> = {};
-      
-      newSelectedVersions.forEach(id => {
-        newDistributions[id] = evenDistribution;
-      });
-      
-      setDistributions(newDistributions);
-    } else {
-      setDistributions({});
-    }
+  const trafficTotal = Object.values(distributions).reduce(
+    (sum, value) => sum + value,
+    0
+  );
+  const trafficIsValid = Math.abs(trafficTotal - 1) < 0.001;
+  const canLaunch =
+    selectedVersions.length >= 2 && metrics.length > 0 && trafficIsValid;
+
+  const handleToggleVersion = (versionId: string) => {
+    const isSelected = selectedVersions.includes(versionId);
+    const nextVersions = isSelected
+      ? selectedVersions.filter((id) => id !== versionId)
+      : [...selectedVersions, versionId];
+
+    setSelectedVersions(nextVersions);
+    setDistributions(distributeEvenly(nextVersions));
   };
 
   const handleDistributionChange = (versionId: string, value: string) => {
-    const numValue = parseFloat(value) / 100;
-    
-    if (isNaN(numValue) || numValue < 0 || numValue > 1) return;
-    
-    // Calculate the total of other distributions
-    const otherTotal = Object.entries(distributions)
-      .filter(([id]) => id !== versionId)
-      .reduce((sum, [, val]) => sum + val, 0);
-    
-    // Check if the new total would exceed 1
-    if (otherTotal + numValue > 1) return;
-    
-    // Update the distribution for this version
-    const newDistributions = { ...distributions, [versionId]: numValue };
-    
-    // If the total is less than 1, adjust the last version to make it 1
-    const total = Object.values(newDistributions).reduce((sum, val) => sum + val, 0);
-    
-    if (total < 1 && selectedVersions.length > 0) {
-      const lastVersionId = selectedVersions[selectedVersions.length - 1];
-      
-      if (lastVersionId !== versionId) {
-        newDistributions[lastVersionId] = 1 - (total - newDistributions[lastVersionId]);
-      }
+    const nextValue = Math.min(100, Math.max(0, Number(value))) / 100;
+    if (!Number.isFinite(nextValue)) return;
+
+    const otherIds = selectedVersions.filter((id) => id !== versionId);
+    if (otherIds.length === 0) {
+      setDistributions({ [versionId]: 1 });
+      return;
     }
-    
-    setDistributions(newDistributions);
+
+    const remainingWeight = (1 - nextValue) / otherIds.length;
+    setDistributions({
+      ...Object.fromEntries(otherIds.map((id) => [id, remainingWeight])),
+      [versionId]: nextValue,
+    });
   };
 
-  const handleAddMetric = () => {
-    if (newMetric && !metrics.includes(newMetric)) {
-      setMetrics([...metrics, newMetric]);
-      setNewMetric("");
-    }
+  const handleAddMetric = (metric = newMetric) => {
+    const normalizedMetric = metric.trim().toLowerCase().replaceAll(" ", "_");
+    if (!normalizedMetric || metrics.includes(normalizedMetric)) return;
+    setMetrics((current) => [...current, normalizedMetric]);
+    setNewMetric("");
   };
 
   const handleRemoveMetric = (metric: string) => {
-    setMetrics(metrics.filter(m => m !== metric));
+    setMetrics((current) => current.filter((item) => item !== metric));
   };
 
   const handleSubmit = (values: CreateABTestFormValues) => {
@@ -153,234 +180,400 @@ export function ABTestForm({ promptId, versions, defaultValues, onSubmit, isEdit
       ...values,
       startDate: new Date(values.startDate),
       endDate: values.endDate ? new Date(values.endDate) : undefined,
-      results: isEditing && defaultValues?.results ? defaultValues.results : undefined,
+      results:
+        isEditing && defaultValues?.results
+          ? defaultValues.results
+          : undefined,
     };
-    
+
     onSubmit(test);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Test Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter A/B test name" {...field} />
-              </FormControl>
-              <FormDescription>
-                A descriptive name for this A/B test.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Enter a description for this A/B test"
-                  className="min-h-20"
-                  {...field}
-                  value={field.value || ""}
-                />
-              </FormControl>
-              <FormDescription>
-                Optional description to explain the purpose of this test.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div>
-          <FormLabel>Versions</FormLabel>
-          <FormDescription className="mt-1 mb-2">
-            Select at least two versions to compare in this A/B test.
-          </FormDescription>
-          
-          <div className="space-y-4">
-            {selectedVersions.length > 0 ? (
-              <div className="space-y-2">
-                {selectedVersions.map(versionId => {
-                  const version = versions.find(v => v.id === versionId);
-                  if (!version) return null;
-                  
-                  return (
-                    <div key={versionId} className="flex items-center gap-4 p-3 border rounded-md">
-                      <div className="flex-1">
-                        <p className="font-medium">{version.name}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          className="w-20"
-                          value={Math.round((distributions[versionId] || 0) * 100)}
-                          onChange={(e) => handleDistributionChange(versionId, e.target.value)}
-                        />
-                        <span>%</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveVersion(versionId)}
-                        >
-                          <LucideX className="h-4 w-4" />
-                          <span className="sr-only">Remove</span>
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="ab-create-form"
+      >
+        <div className="ab-create-workflow">
+          <section className="ab-create-section">
+            <header className="ab-create-section-header">
+              <span>02</span>
+              <div>
+                <h2>Describe the experiment</h2>
+                <p>Give teammates enough context to understand the decision.</p>
               </div>
-            ) : (
-              <p className="text-muted-foreground">No versions selected.</p>
-            )}
-            
-            <div>
-              <Select
-                onValueChange={handleAddVersion}
-                value=""
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Add a version" />
-                </SelectTrigger>
-                <SelectContent>
-                  {versions
-                    .filter(version => !selectedVersions.includes(version.id))
-                    .map(version => (
-                      <SelectItem key={version.id} value={version.id}>
-                        {version.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+            </header>
+            <div className="ab-create-field-grid">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. Concise vs. contextual follow-up"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Name the difference you are testing.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hypothesis</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="We expect the contextual version to improve success rate because…"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional, but useful when reading results later.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </div>
-          
-          {selectedVersions.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm text-muted-foreground">
-                Total: {Math.round(Object.values(distributions).reduce((sum, val) => sum + val, 0) * 100)}%
+          </section>
+
+          <section className="ab-create-section">
+            <header className="ab-create-section-header">
+              <span>03</span>
+              <div>
+                <h2>Choose variants</h2>
+                <p>
+                  Select at least two versions. The newest two are selected for
+                  you.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setDistributions(distributeEvenly(selectedVersions))
+                }
+                disabled={selectedVersions.length === 0}
+              >
+                <LucideEqual className="h-4 w-4" />
+                Balance evenly
+              </Button>
+            </header>
+
+            <div className="ab-create-version-list">
+              {versions.map((version, index) => {
+                const isSelected = selectedVersions.includes(version.id);
+                return (
+                  <article
+                    className="ab-create-version"
+                    data-selected={isSelected}
+                    key={version.id}
+                  >
+                    <button
+                      type="button"
+                      className="ab-create-version-select"
+                      aria-pressed={isSelected}
+                      onClick={() => handleToggleVersion(version.id)}
+                    >
+                      <span>
+                        {isSelected ? (
+                          <LucideCheck className="h-4 w-4" />
+                        ) : (
+                          String(index + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      <div>
+                        <strong>{version.name}</strong>
+                        <small>
+                          {version.triggerCount.toLocaleString()} triggers
+                        </small>
+                      </div>
+                      <em>{isSelected ? "Selected" : "Select"}</em>
+                    </button>
+
+                    <p>
+                      <HighlightedPromptText content={version.content} />
+                    </p>
+
+                    {isSelected ? (
+                      <label className="ab-create-traffic-control">
+                        <span>Traffic</span>
+                        <div>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            aria-label={`${version.name} traffic percentage`}
+                            value={Math.round(
+                              (distributions[version.id] || 0) * 100
+                            )}
+                            onChange={(event) =>
+                              handleDistributionChange(
+                                version.id,
+                                event.target.value
+                              )
+                            }
+                          />
+                          <span>%</span>
+                        </div>
+                      </label>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="ab-create-traffic-total" data-valid={trafficIsValid}>
+              <span>Traffic allocation</span>
+              <strong>{Math.round(trafficTotal * 100)}%</strong>
+              <p>
+                {trafficIsValid
+                  ? "Ready—every request is allocated."
+                  : "Traffic must total 100%."}
               </p>
             </div>
-          )}
-          
-          {form.formState.errors.versionIds && (
-            <p className="text-sm font-medium text-destructive mt-2">
-              {form.formState.errors.versionIds.message}
-            </p>
-          )}
+            {form.formState.errors.versionIds ? (
+              <p className="text-destructive ab-create-inline-error">
+                {form.formState.errors.versionIds.message}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="ab-create-section">
+            <header className="ab-create-section-header">
+              <span>04</span>
+              <div>
+                <h2>Define success</h2>
+                <p>
+                  Start with the recommended signals or add your own metric key.
+                </p>
+              </div>
+            </header>
+
+            <div className="ab-create-metric-options">
+              {RECOMMENDED_METRICS.map((metric) => {
+                const isSelected = metrics.includes(metric.id);
+                return (
+                  <button
+                    type="button"
+                    data-selected={isSelected}
+                    aria-pressed={isSelected}
+                    key={metric.id}
+                    onClick={() =>
+                      isSelected
+                        ? handleRemoveMetric(metric.id)
+                        : handleAddMetric(metric.id)
+                    }
+                  >
+                    <span>
+                      {isSelected ? (
+                        <LucideCheck className="h-4 w-4" />
+                      ) : null}
+                    </span>
+                    <strong>{metric.label}</strong>
+                    <p>{metric.description}</p>
+                    <code>{metric.id}</code>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="ab-create-custom-metric">
+              <Input
+                aria-label="Custom metric key"
+                placeholder="Custom metric key"
+                value={newMetric}
+                onChange={(event) => setNewMetric(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleAddMetric();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleAddMetric()}
+              >
+                <LucidePlus className="h-4 w-4" />
+                Add metric
+              </Button>
+            </div>
+
+            {metrics.length > 0 ? (
+              <div className="ab-create-selected-metrics">
+                {metrics.map((metric) => (
+                  <span key={metric}>
+                    <code>{metric}</code>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${metric}`}
+                      onClick={() => handleRemoveMetric(metric)}
+                    >
+                      <LucideX className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-destructive ab-create-inline-error">
+                Choose at least one success metric.
+              </p>
+            )}
+          </section>
+
+          <section className="ab-create-section">
+            <header className="ab-create-section-header">
+              <span>05</span>
+              <div>
+                <h2>Schedule the test</h2>
+                <p>Launch now or define a fixed experiment window.</p>
+              </div>
+            </header>
+
+            <div className="ab-create-schedule">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        {...field}
+                        value={
+                          field.value instanceof Date
+                            ? field.value.toISOString().split("T")[0]
+                            : field.value
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End date</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        {...field}
+                        value={
+                          field.value instanceof Date
+                            ? field.value.toISOString().split("T")[0]
+                            : field.value || ""
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Leave blank to run until manually stopped.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="ab-create-launch-state">
+                  <FormControl>
+                    <input
+                      id="ab-test-active"
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div>
+                    <FormLabel htmlFor="ab-test-active">
+                      Start collecting traffic when the test begins
+                    </FormLabel>
+                    <FormDescription>
+                      Turn this off to save the experiment as inactive.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </section>
         </div>
-        
-        <div>
-          <FormLabel>Metrics</FormLabel>
-          <FormDescription className="mt-1 mb-2">
-            Define metrics to track for this A/B test.
-          </FormDescription>
-          
-          <div className="mt-2 mb-1 flex flex-wrap gap-2">
-            {metrics.map((metric) => (
-              <Badge key={metric} variant="secondary" className="text-sm">
-                {metric}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 ml-1 p-0"
-                  onClick={() => handleRemoveMetric(metric)}
-                >
-                  <LucideX className="h-3 w-3" />
-                  <span className="sr-only">Remove</span>
-                </Button>
-              </Badge>
+
+        <aside className="ab-create-review">
+          <span className="rail-label">Review</span>
+          <h2>Ready to launch?</h2>
+          <p>
+            Confirm the experiment setup before creating the test.
+          </p>
+
+          <dl>
+            <div>
+              <dt>Prompt</dt>
+              <dd>{promptName}</dd>
+            </div>
+            <div>
+              <dt>Variants</dt>
+              <dd>{selectedVersions.length}</dd>
+            </div>
+            <div>
+              <dt>Traffic</dt>
+              <dd data-valid={trafficIsValid}>
+                {Math.round(trafficTotal * 100)}%
+              </dd>
+            </div>
+            <div>
+              <dt>Metrics</dt>
+              <dd>{metrics.length}</dd>
+            </div>
+          </dl>
+
+          <div className="ab-create-review-versions">
+            {selectedVersionDetails.map((version, index) => (
+              <div key={version.id}>
+                <span>{String.fromCharCode(65 + index)}</span>
+                <strong>{version.name}</strong>
+                <em>
+                  {Math.round((distributions[version.id] || 0) * 100)}%
+                </em>
+              </div>
             ))}
           </div>
-          
-          <div className="flex gap-2 mt-2">
-            <Input
-              placeholder="Add metric (e.g., conversion_rate)"
-              value={newMetric}
-              onChange={(e) => setNewMetric(e.target.value)}
-              className="max-w-xs"
-            />
-            <Button type="button" variant="outline" onClick={handleAddMetric}>
-              <LucidePlus className="mr-2 h-4 w-4" />
-              Add
-            </Button>
-          </div>
-        </div>
-        
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Start Date</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="endDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>End Date (Optional)</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value || ""}
-                />
-              </FormControl>
-              <FormDescription>
-                If not set, the test will run indefinitely until manually stopped.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="isActive"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center gap-2 space-y-0">
-              <FormControl>
-                <input
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={field.onChange}
-                  className="h-4 w-4"
-                />
-              </FormControl>
-              <FormLabel className="text-sm font-normal">Active</FormLabel>
-            </FormItem>
-          )}
-        />
-        
-        <div className="flex justify-end">
-          <Button type="submit" disabled={selectedVersions.length < 2}>
-            {isEditing ? "Update A/B Test" : "Create A/B Test"}
+
+          <Button type="submit" disabled={!canLaunch}>
+            {isEditing ? "Update A/B test" : "Create A/B test"}
           </Button>
-        </div>
+          {!canLaunch ? (
+            <small>
+              Select two variants, allocate 100% of traffic, and choose a
+              metric.
+            </small>
+          ) : (
+            <small>
+              You can pause or end the test from its results page.
+            </small>
+          )}
+        </aside>
       </form>
     </Form>
   );
