@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/PageTransition";
 import { NavItems } from "@/components/NavItems";
 import { UserMenu } from "@/components/auth/user-menu";
-import { motion } from "framer-motion";
 
 export default function DashboardLayout({
   children,
@@ -26,35 +25,35 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-white/10 bg-black px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <motion.span 
-            className="text-xl font-bold text-orange"
-            initial={{ opacity: 0.8 }}
-            animate={{ opacity: 1 }}
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-          >
-            Promptly
-          </motion.span>
+    <div className="promptly-shell">
+      <header className="promptly-mobile-header">
+        <Link href="/" className="promptly-brand" aria-label="Promptly dashboard">
+          <span>Promptly</span>
+        </Link>
+        <UserMenu />
+      </header>
+      <aside className="promptly-sidebar">
+        <Link href="/" className="promptly-brand" aria-label="Promptly dashboard">
+          <span>Promptly</span>
         </Link>
         <NavItems />
-        <div className="ml-auto flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+        <div className="promptly-sidebar-footer">
+          <div className="promptly-sidebar-actions">
+          <Button
+            variant="ghost"
             onClick={showOnboarding}
             title="Show onboarding guide"
-            className="hover-orange text-white hover:text-orange"
+            className="promptly-help"
           >
-            <LucideHelpCircle className="h-5 w-5" />
+            <LucideHelpCircle className="h-4 w-4" />
+            Product guide
           </Button>
           <UserMenu />
+          </div>
         </div>
-      </header>
-      <main className="flex-1 flex items-center justify-center p-10">
-        <div className="w-full max-w-7xl">
+      </aside>
+      <main className="promptly-main">
+        <div className="promptly-content">
           <PageTransition>
             {children}
           </PageTransition>
@@ -64,4 +63,4 @@ export default function DashboardLayout({
       <OnboardingModal />
     </div>
   );
-} 
+}

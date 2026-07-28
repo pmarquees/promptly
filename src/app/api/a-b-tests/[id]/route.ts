@@ -5,10 +5,10 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = await params.id;
+    const { id } = await params;
     
     // Fetch the A/B test from the database
     const test = await prisma.aBTest.findUnique({
@@ -56,10 +56,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = await params.id;
+    const { id } = await params;
     const body = await request.json();
     
     // Check if the test exists
@@ -110,10 +110,10 @@ export async function PATCH(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = await params.id;
+    const { id } = await params;
     const body = await request.json();
     
     // Check if the test exists
@@ -156,4 +156,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}

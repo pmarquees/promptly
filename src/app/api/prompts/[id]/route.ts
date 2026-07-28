@@ -4,9 +4,9 @@ import { validateApiKey } from "@/lib/apiAuth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = await params.id;
+  const { id } = await params;
   
   // Validate API key authentication
   const authResult = await validateApiKey(request);
@@ -136,9 +136,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = await params.id;
+  const { id } = await params;
   
   // Validate API key authentication
   const authResult = await validateApiKey(request);
@@ -230,9 +230,9 @@ export async function POST(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = await params.id;
+  const { id } = await params;
   
   // Validate API key authentication
   const authResult = await validateApiKey(request);
@@ -296,9 +296,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = await params.id;
+  const { id } = await params;
   
   // Validate API key authentication
   const authResult = await validateApiKey(request);
@@ -338,4 +338,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

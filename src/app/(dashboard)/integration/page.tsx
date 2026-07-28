@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,11 @@ import { PromptlyClient } from "@/components/integration/PromptlyClient";
 
 export default function IntegrationPage() {
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const [baseUrl, setBaseUrl] = useState("");
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
 
   const handleCopy = (code: string, tab: string) => {
     navigator.clipboard.writeText(code);
@@ -332,4 +336,4 @@ requests.post(
       </Card>
     </div>
   );
-} 
+}

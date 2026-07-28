@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,13 @@ import { formatDate, generatePromptUrl, generateCodeSnippet } from "@/lib/utils"
 import { toast } from "sonner";
 
 interface PromptDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function PromptDetailPage({ params }: PromptDetailPageProps) {
+  const { id: promptId } = use(params);
   const router = useRouter();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [versions, setVersions] = useState<PromptVersion[]>([]);
@@ -31,7 +32,6 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
     const fetchPrompt = async () => {
       setIsLoading(true);
       try {
-        const promptId = params.id;
         const response = await fetch(`/api/prompts/${promptId}`);
         
         if (!response.ok) {
@@ -81,7 +81,7 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
     };
 
     fetchPrompt();
-  }, [params.id, router]);
+  }, [promptId, router]);
 
   const handleDelete = async () => {
     if (!prompt) return;
@@ -397,4 +397,4 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
       </Tabs>
     </div>
   );
-} 
+}

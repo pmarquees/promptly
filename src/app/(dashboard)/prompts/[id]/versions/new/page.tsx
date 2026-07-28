@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,13 @@ import { Prompt, PromptVersion } from "@/lib/types";
 import { toast } from "sonner";
 
 interface NewVersionPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function NewVersionPage({ params }: NewVersionPageProps) {
+  const { id: promptId } = use(params);
   const router = useRouter();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,6 @@ export default function NewVersionPage({ params }: NewVersionPageProps) {
     const fetchPrompt = async () => {
       setLoading(true);
       try {
-        const promptId = params.id;
         const loadedPrompt = await clientPromptStorage.getById(promptId);
         
         if (!loadedPrompt) {
@@ -47,7 +47,7 @@ export default function NewVersionPage({ params }: NewVersionPageProps) {
     };
     
     fetchPrompt();
-  }, [params.id, router]);
+  }, [promptId, router]);
 
   const handleSubmit = async (version: PromptVersion) => {
     if (!prompt) return;
@@ -133,4 +133,4 @@ export default function NewVersionPage({ params }: NewVersionPageProps) {
       </Card>
     </div>
   );
-} 
+}

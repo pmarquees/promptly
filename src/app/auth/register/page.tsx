@@ -10,35 +10,40 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
-      <header className="border-b border-white/10">
-        <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-orange hover-orange">
-            Promply
-          </Link>
+    <main className="auth-shell">
+      <section className="auth-rail">
+        <Link href="/" className="auth-brand">
+          <span>Promptly</span>
+        </Link>
+        <div className="auth-statement">
+          <p>Build a prompt system</p>
+          <h2>Make iteration observable, not accidental.</h2>
         </div>
-      </header>
-      <div className="container flex flex-1 w-screen flex-col items-center justify-center">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Create an account</h1>
-            <p className="text-sm text-white/70">
+        <footer>
+          <span>Version · test · ship</span>
+          <span>Private workspace</span>
+        </footer>
+      </section>
+      <section className="auth-panel">
+        <div className="auth-form">
+          <header>
+            <h1>Create an account</h1>
+            <p>
               Enter your information to create an account
             </p>
-          </div>
+          </header>
           <Suspense fallback={<div>Loading...</div>}>
             <RegisterForm />
           </Suspense>
-          <p className="px-8 text-center text-sm text-white/70">
+          <p className="auth-switch">
             <Link
               href="/auth/login"
-              className="hover:text-orange underline underline-offset-4"
             >
               Already have an account? Sign In
             </Link>
           </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
-} 
+}

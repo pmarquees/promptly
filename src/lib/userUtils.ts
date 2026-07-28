@@ -1,7 +1,8 @@
 import { prisma } from "./prisma";
+import type { Session } from "next-auth";
 
 // Helper function to ensure user exists in database
-export async function ensureUserExists(session: any) {
+export async function ensureUserExists(session: Session | null) {
   if (!session?.user?.id) {
     throw new Error("No user ID in session");
   }
@@ -31,4 +32,4 @@ export async function ensureUserExists(session: any) {
   }
   
   return user;
-} 
+}

@@ -1,10 +1,18 @@
 import { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
 import { prisma } from "./prisma";
+import { authOptions } from "./auth";
 
 export async function validateApiKey(request: NextRequest): Promise<{ valid: boolean; userId?: string; error?: string }> {
   const authHeader = request.headers.get("authorization");
   
   if (!authHeader) {
+    const session = await getServerSession(authOptions);
+
+    if (session?.user?.id) {
+      return { valid: true, userId: session.user.id };
+    }
+
     return { valid: false, error: "Missing authorization header" };
   }
   

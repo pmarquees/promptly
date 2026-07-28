@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/auth/session-provider";
-import { UserMenu } from "@/components/auth/user-menu";
-import Link from "next/link";
-import { NavItems } from "@/components/NavItems";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Promply - AI Prompt Management",
-  description: "Manage and optimize your AI prompts with Promply",
+  title: "Promptly - AI Prompt Management",
+  description: "Manage and optimize your AI prompts with Promptly",
 };
 
 export default function RootLayout({

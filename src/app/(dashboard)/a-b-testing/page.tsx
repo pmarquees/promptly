@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { LucidePlus, LucideFlaskConical, LucideTrash, LucideEdit } from "lucide-react";
+import { LucidePlus, LucideFlaskConical, LucideTrash, LucideEdit, LucideArrowRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -158,6 +158,12 @@ export default function ABTestingPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Link href={`/a-b-testing/${test.id}`}>
+                            <Button variant="outline" size="icon" title="View test details">
+                              <LucideArrowRight className="h-4 w-4" />
+                              <span className="sr-only">View test details</span>
+                            </Button>
+                          </Link>
                           <Link href={`/a-b-testing/${test.id}/edit`}>
                             <Button variant="outline" size="icon">
                               <LucideEdit className="h-4 w-4" />
@@ -202,4 +208,4 @@ export default function ABTestingPage() {
       )}
     </div>
   );
-} 
+}

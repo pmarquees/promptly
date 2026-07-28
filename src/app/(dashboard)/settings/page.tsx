@@ -141,7 +141,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="settings-card-header">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <LucideKey className="h-5 w-5" />
@@ -153,7 +153,10 @@ export default function SettingsPage() {
             </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
-                <Button onClick={() => setShowCreateDialog(true)}>
+                <Button
+                  className="settings-create-key"
+                  onClick={() => setShowCreateDialog(true)}
+                >
                   <LucidePlus className="mr-2 h-4 w-4" />
                   Create API Key
                 </Button>
@@ -242,16 +245,16 @@ export default function SettingsPage() {
               {apiKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="api-key-row"
                 >
-                  <div className="flex-1">
+                  <div className="api-key-main">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium">{apiKey.name}</h4>
                       <Badge variant="secondary">
                         {apiKey.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="api-key-meta">
                       <span>Created {formatDate(new Date(apiKey.createdAt))}</span>
                       {apiKey.lastUsedAt && (
                         <>
@@ -260,40 +263,50 @@ export default function SettingsPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="api-key-control-row">
                       <Input
                         value={showKey[apiKey.id] ? apiKey.key : apiKey.key}
                         readOnly
-                        className="font-mono text-sm flex-1"
+                        className="api-key-input"
                       />
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => toggleShowKey(apiKey.id)}
+                        className="api-key-icon-button"
+                        title={showKey[apiKey.id] ? "Hide API key" : "Show API key"}
                       >
                         {showKey[apiKey.id] ? (
                           <LucideEyeOff className="h-4 w-4" />
                         ) : (
                           <LucideEye className="h-4 w-4" />
                         )}
+                        <span className="sr-only">
+                          {showKey[apiKey.id] ? "Hide API key" : "Show API key"}
+                        </span>
                       </Button>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => copyToClipboard(apiKey.key)}
+                        className="api-key-icon-button"
+                        title="Copy API key"
                       >
                         <LucideCopy className="h-4 w-4" />
+                        <span className="sr-only">Copy API key</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => deleteApiKey(apiKey.id, apiKey.name)}
+                        className="api-key-icon-button text-destructive hover:text-destructive"
+                        title="Delete API key"
+                      >
+                        <LucideTrash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete API key</span>
                       </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteApiKey(apiKey.id, apiKey.name)}
-                    className="ml-4 text-destructive hover:text-destructive"
-                  >
-                    <LucideTrash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               ))}
             </div>

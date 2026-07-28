@@ -6,9 +6,9 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const promptId = await params.id;
+  const { id: promptId } = await params;
   
   try {
     // Check if prompt exists
@@ -41,9 +41,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const promptId = await params.id;
+  const { id: promptId } = await params;
   
   try {
     // Check if prompt exists
@@ -102,4 +102,4 @@ export async function POST(
       { status: 500 }
     );
   }
-} 
+}

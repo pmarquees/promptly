@@ -150,10 +150,10 @@ export function ABTestForm({ promptId, versions, defaultValues, onSubmit, isEdit
   const handleSubmit = (values: CreateABTestFormValues) => {
     const test: ABTest = {
       id: isEditing && defaultValues?.id ? defaultValues.id : generateId(),
+      ...values,
       startDate: new Date(values.startDate),
       endDate: values.endDate ? new Date(values.endDate) : undefined,
       results: isEditing && defaultValues?.results ? defaultValues.results : undefined,
-      ...values,
     };
     
     onSubmit(test);
@@ -384,4 +384,4 @@ export function ABTestForm({ promptId, versions, defaultValues, onSubmit, isEdit
       </form>
     </Form>
   );
-} 
+}

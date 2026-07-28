@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LucideFlaskConical, LucideMessageSquare, LucidePlus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-// Define types for the data structures
+// Dashboard data structures
 interface PromptWithUser {
   id: string;
   name: string;
@@ -69,11 +69,11 @@ export default function Dashboard() {
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-[60vh]">Loading dashboard data...</div>;
+    return <div className="promptly-state"><div>Loading workspace data…</div></div>;
   }
 
   if (error) {
-    return <div className="flex justify-center items-center h-[60vh] text-red-500">{error}</div>;
+    return <div className="promptly-state text-destructive" role="alert"><div>{error}</div></div>;
   }
 
   const {
@@ -88,7 +88,10 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div>
+          <h1>Workspace overview</h1>
+          <p>Prompts, versions, traffic, and live experiments at a glance.</p>
+        </div>
         <Link href="/prompts/new">
           <Button>
             <LucidePlus className="mr-2 h-4 w-4" />
@@ -97,40 +100,40 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="dashboard-metrics">
+        <Card className="dashboard-metric">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Prompts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPrompts}</div>
+            <div>{totalPrompts}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="dashboard-metric">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Versions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalVersions}</div>
+            <div>{totalVersions}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="dashboard-metric">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Triggers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalTriggers}</div>
+            <div>{totalTriggers}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="dashboard-metric">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Active A/B Tests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeTests}</div>
+            <div>{activeTests}</div>
           </CardContent>
         </Card>
       </div>
@@ -147,8 +150,8 @@ export default function Dashboard() {
             {recentPrompts.length > 0 ? (
               <div className="space-y-4">
                 {recentPrompts.map((prompt: PromptWithUser) => (
-                  <div key={prompt.id} className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div key={prompt.id} className="dashboard-row">
+                    <div className="dashboard-row-icon">
                       <LucideMessageSquare className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 space-y-1">
@@ -196,8 +199,8 @@ export default function Dashboard() {
             {activeTestsWithDetails.length > 0 ? (
               <div className="space-y-4">
                 {activeTestsWithDetails.map((test: ABTestWithDetails) => (
-                  <div key={test.id} className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div key={test.id} className="dashboard-row">
+                    <div className="dashboard-row-icon">
                       <LucideFlaskConical className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 space-y-1">

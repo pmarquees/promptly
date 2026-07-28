@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LucideCode, LucideFlaskConical, LucideHome, LucideMessageSquare, LucideSettings } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
 
 export function NavItems() {
   const pathname = usePathname();
@@ -44,44 +42,20 @@ export function NavItems() {
     },
   ];
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-  
-  const itemVariant = {
-    hidden: { opacity: 0, y: -10 },
-    show: { opacity: 1, y: 0 }
-  };
-
   return (
-    <motion.nav 
-      className="hidden md:flex items-center gap-6"
-      variants={container}
-      initial="hidden"
-      animate="show"
-    >
+    <nav className="promptly-nav" aria-label="Primary navigation">
       {navItems.map((navItem) => (
-        <motion.div key={navItem.href} variants={itemVariant}>
-          <Link
-            href={navItem.href}
-            className={cn(
-              "flex items-center gap-2 text-sm font-medium transition-colors hover:text-orange",
-              pathname === navItem.href
-                ? "text-orange"
-                : "text-white/70 hover:text-white"
-            )}
-          >
-            <navItem.icon className="h-4 w-4" />
-            {navItem.name}
-          </Link>
-        </motion.div>
+        <Link
+          key={navItem.href}
+          href={navItem.href}
+          className="promptly-nav-link"
+          data-active={pathname === navItem.href || (navItem.href !== "/" && pathname.startsWith(navItem.href))}
+          aria-current={pathname === navItem.href ? "page" : undefined}
+        >
+          <navItem.icon className="h-[17px] w-[17px]" strokeWidth={1.5} />
+          {navItem.name}
+        </Link>
       ))}
-    </motion.nav>
+    </nav>
   );
-} 
+}

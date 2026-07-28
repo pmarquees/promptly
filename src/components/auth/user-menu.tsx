@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 
 export function UserMenu() {
   const { data: session, status } = useSession();
@@ -40,60 +39,31 @@ export function UserMenu() {
     );
   }
 
-  const menuItemVariants = {
-    hidden: { opacity: 0, y: -5 },
-    visible: { opacity: 1, y: 0 },
-    hover: { color: "var(--orange)", x: 2 }
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="ghost" size="sm" className="relative hover:text-orange text-white">
-            {session?.user?.name || session?.user?.email}
-          </Button>
-        </motion.div>
+        <Button variant="ghost" size="sm" className="relative w-full justify-start">
+          {session?.user?.name || session?.user?.email}
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: {
-              transition: {
-                staggerChildren: 0.05
-              }
-            }
+        <DropdownMenuItem asChild>
+          <Link href="/">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings">Settings</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={async () => {
+            await signOut({ redirect: false });
+            toast.success("Signed out successfully");
+            router.push("/");
           }}
         >
-          <motion.div variants={menuItemVariants} whileHover="hover">
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </DropdownMenuItem>
-          </motion.div>
-          
-          <motion.div variants={menuItemVariants} whileHover="hover">
-            <DropdownMenuItem asChild>
-              <Link href="/settings">Settings</Link>
-            </DropdownMenuItem>
-          </motion.div>
-          
-          <DropdownMenuSeparator />
-          
-          <motion.div variants={menuItemVariants} whileHover="hover">
-            <DropdownMenuItem
-              onClick={async () => {
-                await signOut({ redirect: false });
-                toast.success("Signed out successfully");
-                router.push("/");
-              }}
-            >
-              Sign Out
-            </DropdownMenuItem>
-          </motion.div>
-        </motion.div>
+          Sign Out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-} 
+}
