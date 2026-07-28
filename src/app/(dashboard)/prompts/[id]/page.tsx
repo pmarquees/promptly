@@ -1,21 +1,58 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { LucideArrowLeft, LucideEdit, LucideTrash, LucidePlus, LucideCode } from "lucide-react";
-import { Prompt, PromptVersion } from "@/lib/types";
-import { formatDate, generatePromptUrl, generateCodeSnippet } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import {
+  LucideArrowLeft,
+  LucideArrowUpRight,
+  LucideCheck,
+  LucideCode2,
+  LucideCopy,
+  LucideEdit,
+  LucidePlus,
+  LucideTrash,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Prompt, PromptVersion } from "@/lib/types";
+import {
+  formatDate,
+  generateCodeSnippet,
+  generatePromptUrl,
+} from "@/lib/utils";
 
 interface PromptDetailPageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
+}
+
+type IntegrationLanguage = "javascript" | "python" | "curl";
+
+function formatCompactNumber(value: number) {
+  return new Intl.NumberFormat("en", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function PromptContent({ content }: { content: string }) {
+  return (
+    <div className="prompt-manuscript" aria-label="Prompt content">
+      <div className="prompt-manuscript-gutter" aria-hidden="true">
+        01
+      </div>
+      <pre>
+        {content.split(/(\{\{[^}]+\}\})/g).map((part, index) =>
+          part.startsWith("{{") ? (
+            <mark key={`${part}-${index}`}>{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </pre>
+    </div>
+  );
 }
 
 export default function PromptDetailPage({ params }: PromptDetailPageProps) {
@@ -24,375 +61,487 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [versions, setVersions] = useState<PromptVersion[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedLanguage, setSelectedLanguage] = useState<"javascript" | "python" | "curl">("javascript");
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<IntegrationLanguage>("javascript");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load prompt from API
-    const fetchPrompt = async () => {
+    const controller = new AbortController();
+
+    async function fetchPrompt() {
       setIsLoading(true);
+      setError(null);
+
       try {
-        const response = await fetch(`/api/prompts/${promptId}`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            toast.error("Prompt not found");
-            router.push("/prompts");
-            return;
-          }
-          throw new Error('Failed to fetch prompt');
+        const [promptsResponse, versionsResponse] = await Promise.all([
+          fetch("/api/prompts", { signal: controller.signal }),
+          fetch(`/api/prompts/${promptId}/versions`, {
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (!promptsResponse.ok) {
+          throw new Error("Failed to load prompt");
         }
-        
-        const data = await response.json();
-        
-        // Create a prompt object from the API response
-        const promptData: Prompt = {
-          id: promptId,
-          name: data.name || "Unnamed Prompt",
-          description: data.description || "",
-          content: data.content,
-          variables: data.variables,
-          createdAt: new Date(data.createdAt || new Date()),
-          updatedAt: new Date(data.updatedAt || new Date()),
-          createdBy: data.createdBy || "",
-          isActive: data.isActive !== undefined ? data.isActive : true,
-          triggerCount: data.triggerCount || 0,
-          tags: data.tags || [],
-          versions: data.versions || [],
-          currentVersionId: data.currentVersionId
-        };
-        
-        setPrompt(promptData);
-        
-        // Load versions for this prompt
-        const versionsResponse = await fetch(`/api/prompts/${promptId}/versions`);
+
+        const promptsData = (await promptsResponse.json()) as Array<
+          Omit<Prompt, "createdAt" | "updatedAt"> & {
+            createdAt: string;
+            updatedAt: string;
+          }
+        >;
+        const promptData = promptsData.find((item) => item.id === promptId);
+
+        if (!promptData) {
+          throw new Error("Prompt not found");
+        }
+
+        setPrompt({
+          ...promptData,
+          createdAt: new Date(promptData.createdAt),
+          updatedAt: new Date(promptData.updatedAt),
+          versions: promptData.versions || [],
+        });
+
         if (versionsResponse.ok) {
-          const versionsData = await versionsResponse.json();
-          setVersions(versionsData);
+          const versionsData = (await versionsResponse.json()) as Array<
+            Omit<PromptVersion, "createdAt"> & { createdAt: string }
+          >;
+          setVersions(
+            versionsData.map((version) => ({
+              ...version,
+              createdAt: new Date(version.createdAt),
+            }))
+          );
         } else {
           setVersions([]);
         }
-      } catch (error) {
-        console.error('Error fetching prompt:', error);
-        toast.error('Failed to load prompt');
+      } catch (fetchError) {
+        if (
+          fetchError instanceof DOMException &&
+          fetchError.name === "AbortError"
+        ) {
+          return;
+        }
+        setError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Failed to load prompt"
+        );
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    };
+    }
 
     fetchPrompt();
-  }, [promptId, router]);
+    return () => controller.abort();
+  }, [promptId]);
 
   const handleDelete = async () => {
-    if (!prompt) return;
-    
-    if (confirm("Are you sure you want to delete this prompt? This action cannot be undone.")) {
-      try {
-        const response = await fetch(`/api/prompts/${prompt.id}`, {
-          method: 'DELETE',
-        });
-        
-        if (response.ok) {
-          toast.success("Prompt deleted successfully");
-          router.push("/prompts");
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to delete prompt');
-        }
-      } catch (error) {
-        console.error('Error deleting prompt:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to delete prompt');
+    if (
+      !prompt ||
+      !confirm(
+        "Are you sure you want to delete this prompt? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/prompts/${prompt.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete prompt");
       }
+
+      toast.success("Prompt deleted successfully");
+      router.push("/prompts");
+    } catch (deleteError) {
+      toast.error(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Failed to delete prompt"
+      );
     }
   };
 
   const handleCopyUrl = () => {
     if (!prompt) return;
-    
-    const url = generatePromptUrl(prompt.id);
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(generatePromptUrl(prompt.id));
     toast.success("API URL copied to clipboard");
   };
 
   const handleCopyCode = () => {
     if (!prompt) return;
-    
-    const code = generateCodeSnippet(prompt.id, selectedLanguage);
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(
+      generateCodeSnippet(prompt.id, selectedLanguage)
+    );
     toast.success("Code snippet copied to clipboard");
+  };
+
+  const setCurrentVersion = async (version: PromptVersion) => {
+    if (!prompt || prompt.currentVersionId === version.id) return;
+
+    try {
+      const updatedPrompt = { ...prompt, currentVersionId: version.id };
+      const response = await fetch(`/api/prompts/${prompt.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedPrompt),
+      });
+
+      if (!response.ok) throw new Error("Failed to update prompt");
+      setPrompt(updatedPrompt);
+      toast.success(`Set "${version.name}" as the current version`);
+    } catch {
+      toast.error("Failed to update prompt");
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <p>Loading prompt...</p>
+      <div className="promptly-state" aria-live="polite">
+        <div>Loading prompt overview…</div>
       </div>
     );
   }
 
-  if (!prompt) {
+  if (error || !prompt) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <p>Prompt not found.</p>
+      <div className="space-y-6">
+        <Link href="/prompts" className="detail-back-link">
+          <LucideArrowLeft className="h-4 w-4" />
+          Prompts
+        </Link>
+        <div className="promptly-state text-destructive" role="alert">
+          <div>{error || "Prompt not found"}</div>
+        </div>
       </div>
     );
   }
+
+  const currentVersion =
+    versions.find((version) => version.id === prompt.currentVersionId) ||
+    versions.find((version) => version.isActive) ||
+    versions[0];
+  const endpoint = generatePromptUrl(prompt.id);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/prompts">
-            <Button variant="ghost" size="icon">
-              <LucideArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back</span>
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold">{prompt.name}</h1>
-          <Badge variant={prompt.isActive ? "default" : "secondary"}>
+    <div className="product-detail-page">
+      <Link href="/prompts" className="detail-back-link">
+        <LucideArrowLeft className="h-4 w-4" />
+        Prompts
+      </Link>
+
+      <header className="product-detail-header">
+        <div>
+          <div className="detail-status-line">
+            <span
+              className="detail-status-dot"
+              data-active={prompt.isActive}
+              aria-hidden="true"
+            />
             {prompt.isActive ? "Active" : "Inactive"}
-          </Badge>
+          </div>
+          <h1>{prompt.name}</h1>
+          <p>
+            {prompt.description ||
+              "A production prompt managed, versioned, and delivered through Promptly."}
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="detail-actions">
           <Link href={`/prompts/${prompt.id}/edit`}>
             <Button variant="outline">
-              <LucideEdit className="mr-2 h-4 w-4" />
-              Edit
+              <LucideEdit className="h-4 w-4" />
+              Edit prompt
             </Button>
           </Link>
           <Button variant="destructive" onClick={handleDelete}>
-            <LucideTrash className="mr-2 h-4 w-4" />
+            <LucideTrash className="h-4 w-4" />
             Delete
           </Button>
         </div>
-      </div>
+      </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList aria-label="Prompt sections">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="versions">Versions ({versions.length})</TabsTrigger>
           <TabsTrigger value="integration">Integration</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
-                <p className="mt-1">{prompt.description || "No description provided."}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Created By</h3>
-                <p className="mt-1">{prompt.createdBy}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Created At</h3>
-                  <p className="mt-1">{formatDate(new Date(prompt.createdAt))}</p>
+
+        <TabsContent value="overview">
+          <div className="prompt-overview-grid">
+            <div className="prompt-overview-main">
+              <section className="editorial-section">
+                <div className="editorial-section-heading">
+                  <div>
+                    <span className="section-index">01</span>
+                    <h2>Prompt</h2>
+                  </div>
+                  <button
+                    className="text-action"
+                    onClick={() => {
+                      navigator.clipboard.writeText(prompt.content);
+                      toast.success("Prompt copied to clipboard");
+                    }}
+                  >
+                    <LucideCopy className="h-4 w-4" />
+                    Copy prompt
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Last Updated</h3>
-                  <p className="mt-1">{formatDate(new Date(prompt.updatedAt))}</p>
+                <PromptContent content={prompt.content} />
+              </section>
+
+              <section className="editorial-section">
+                <div className="editorial-section-heading">
+                  <div>
+                    <span className="section-index">02</span>
+                    <h2>Variables</h2>
+                  </div>
+                  <span className="section-count">
+                    {prompt.variables.length} defined
+                  </span>
                 </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Trigger Count</h3>
-                <p className="mt-1">{prompt.triggerCount}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Variables</h3>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {prompt.variables.length > 0 ? (
-                    prompt.variables.map((variable) => (
-                      <Badge key={variable} variant="secondary">
-                        {variable}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p>No variables defined.</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Prompt Content</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-sm">
-                {prompt.content}
-              </pre>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="versions" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Prompt Versions</h2>
-            <Link href={`/prompts/${prompt.id}/versions/new`}>
-              <Button>
-                <LucidePlus className="mr-2 h-4 w-4" />
-                New Version
-              </Button>
-            </Link>
-          </div>
-          
-          {versions.length > 0 ? (
-            <div className="space-y-4">
-              {versions.map((version) => (
-                <Card key={version.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-lg">{version.name}</CardTitle>
-                      <Badge variant={version.isActive ? "default" : "secondary"}>
-                        {version.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                {prompt.variables.length > 0 ? (
+                  <div className="variable-ledger">
+                    <div className="variable-ledger-head">
+                      <span>Variable</span>
+                      <span>Token</span>
+                      <span>Required</span>
                     </div>
-                    <CardDescription>
-                      Created {formatDate(new Date(version.createdAt))} by {version.createdBy}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Trigger Count</h3>
-                      <p className="mt-1">{version.triggerCount}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Content</h3>
-                      <pre className="mt-1 whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-sm">
-                        {version.content}
-                      </pre>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <Link href={`/prompts/${prompt.id}/versions/${version.id}/edit`}>
-                        <Button variant="outline" size="sm">
-                          <LucideEdit className="mr-2 h-3 w-3" />
-                          Edit
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant={prompt.currentVersionId === version.id ? "secondary" : "default"}
-                        size="sm"
-                        disabled={prompt.currentVersionId === version.id}
-                        onClick={() => {
-                          if (prompt.currentVersionId !== version.id) {
-                            const updatedPrompt = {
-                              ...prompt,
-                              currentVersionId: version.id,
-                            };
-                            fetch(`/api/prompts/${prompt.id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify(updatedPrompt),
-                            })
-                            .then(response => {
-                              if (response.ok) {
-                                setPrompt(updatedPrompt);
-                                toast.success(`Set "${version.name}" as the current version`);
-                              } else {
-                                throw new Error('Failed to update prompt');
-                              }
-                            })
-                            .catch(error => {
-                              console.error('Error updating prompt:', error);
-                              toast.error('Failed to update prompt');
-                            });
-                          }
-                        }}
-                      >
-                        {prompt.currentVersionId === version.id ? "Current Version" : "Set as Current"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-8">
-                <p className="text-muted-foreground mb-4">No versions created yet.</p>
-                <Link href={`/prompts/${prompt.id}/versions/new`}>
-                  <Button>
-                    <LucidePlus className="mr-2 h-4 w-4" />
-                    Create First Version
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="integration" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>API Integration</CardTitle>
-              <CardDescription>
-                Use these endpoints to integrate this prompt into your application.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">API Endpoint</h3>
-                <div className="mt-1 flex items-center gap-2">
-                  <code className="rounded-md bg-muted p-2 font-mono text-sm flex-1">
-                    {generatePromptUrl(prompt.id)}
-                  </code>
-                  <Button variant="outline" size="sm" onClick={handleCopyUrl}>
-                    Copy
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-muted-foreground">Code Snippet</h3>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant={selectedLanguage === "javascript" ? "default" : "outline"} 
-                      size="sm"
-                      onClick={() => setSelectedLanguage("javascript")}
-                    >
-                      JavaScript
-                    </Button>
-                    <Button 
-                      variant={selectedLanguage === "python" ? "default" : "outline"} 
-                      size="sm"
-                      onClick={() => setSelectedLanguage("python")}
-                    >
-                      Python
-                    </Button>
-                    <Button 
-                      variant={selectedLanguage === "curl" ? "default" : "outline"} 
-                      size="sm"
-                      onClick={() => setSelectedLanguage("curl")}
-                    >
-                      cURL
-                    </Button>
+                    {prompt.variables.map((variable) => (
+                      <div className="variable-ledger-row" key={variable}>
+                        <strong>{variable.replaceAll("_", " ")}</strong>
+                        <code>{`{{${variable}}}`}</code>
+                        <span>
+                          <LucideCheck className="h-3.5 w-3.5" />
+                          Yes
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="editorial-empty">
+                    This prompt has no variables.
+                  </div>
+                )}
+              </section>
+
+              <section className="editorial-section">
+                <div className="editorial-section-heading">
+                  <div>
+                    <span className="section-index">03</span>
+                    <h2>Usage</h2>
                   </div>
                 </div>
-                <div className="mt-2 flex items-start gap-2">
-                  <pre className="rounded-md bg-muted p-4 font-mono text-sm flex-1 whitespace-pre-wrap">
-                    {generateCodeSnippet(prompt.id, selectedLanguage)}
-                  </pre>
-                  <Button variant="outline" size="sm" onClick={handleCopyCode}>
-                    <LucideCode className="mr-2 h-4 w-4" />
-                    Copy
-                  </Button>
+                <div className="prompt-usage-strip">
+                  <div>
+                    <span>Triggers</span>
+                    <strong>{formatCompactNumber(prompt.triggerCount)}</strong>
+                  </div>
+                  <div>
+                    <span>Versions</span>
+                    <strong>{versions.length}</strong>
+                  </div>
+                  <div>
+                    <span>Variables</span>
+                    <strong>{prompt.variables.length}</strong>
+                  </div>
+                  <div>
+                    <span>Updated</span>
+                    <strong>{formatDate(new Date(prompt.updatedAt))}</strong>
+                  </div>
                 </div>
+              </section>
+            </div>
+
+            <aside className="prompt-overview-rail">
+              <section>
+                <span className="rail-label">Current version</span>
+                <strong className="rail-version">
+                  {currentVersion?.name || "Base prompt"}
+                </strong>
+                <dl className="rail-metadata">
+                  <div>
+                    <dt>Status</dt>
+                    <dd>{prompt.isActive ? "Active" : "Inactive"}</dd>
+                  </div>
+                  <div>
+                    <dt>Created</dt>
+                    <dd>{formatDate(new Date(prompt.createdAt))}</dd>
+                  </div>
+                  <div>
+                    <dt>Updated</dt>
+                    <dd>{formatDate(new Date(prompt.updatedAt))}</dd>
+                  </div>
+                  <div>
+                    <dt>ID</dt>
+                    <dd className="rail-id">{prompt.id}</dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section>
+                <div className="rail-section-heading">
+                  <h2>Version history</h2>
+                  <button onClick={() => setActiveTab("versions")}>
+                    View all <LucideArrowUpRight className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="version-rail">
+                  {versions.slice(0, 4).map((version) => (
+                    <button
+                      key={version.id}
+                      data-current={version.id === currentVersion?.id}
+                      onClick={() => setActiveTab("versions")}
+                    >
+                      <span>{version.name}</span>
+                      <small>{formatDate(new Date(version.createdAt))}</small>
+                    </button>
+                  ))}
+                  {versions.length === 0 ? (
+                    <p>No versions created yet.</p>
+                  ) : null}
+                </div>
+              </section>
+
+              <section>
+                <span className="rail-label">Integration</span>
+                <h2>Run via API</h2>
+                <p>Fetch this prompt from your application at any time.</p>
+                <Button
+                  variant="outline"
+                  className="rail-copy-button"
+                  onClick={handleCopyUrl}
+                >
+                  <LucideCode2 className="h-4 w-4" />
+                  Copy endpoint
+                </Button>
+                <code className="rail-endpoint">{endpoint}</code>
+              </section>
+            </aside>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="versions">
+          <section className="detail-tab-section">
+            <div className="detail-tab-heading">
+              <div>
+                <h2>Version history</h2>
+                <p>Compare, promote, and maintain prompt variants.</p>
               </div>
-            </CardContent>
-          </Card>
+              <Link href={`/prompts/${prompt.id}/versions/new`}>
+                <Button>
+                  <LucidePlus className="h-4 w-4" />
+                  New version
+                </Button>
+              </Link>
+            </div>
+
+            {versions.length > 0 ? (
+              <div className="version-ledger">
+                {versions.map((version, index) => (
+                  <article
+                    className="version-ledger-row"
+                    data-current={prompt.currentVersionId === version.id}
+                    key={version.id}
+                  >
+                    <span className="version-index">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="version-ledger-copy">
+                      <div>
+                        <h3>{version.name}</h3>
+                        {prompt.currentVersionId === version.id ? (
+                          <span>Current</span>
+                        ) : null}
+                      </div>
+                      <p>{version.content}</p>
+                    </div>
+                    <dl>
+                      <div>
+                        <dt>Triggers</dt>
+                        <dd>{formatCompactNumber(version.triggerCount)}</dd>
+                      </div>
+                      <div>
+                        <dt>Created</dt>
+                        <dd>{formatDate(new Date(version.createdAt))}</dd>
+                      </div>
+                    </dl>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={prompt.currentVersionId === version.id}
+                      onClick={() => setCurrentVersion(version)}
+                    >
+                      {prompt.currentVersionId === version.id
+                        ? "Current version"
+                        : "Set current"}
+                    </Button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="editorial-empty">
+                <p>No versions created yet.</p>
+                <Link href={`/prompts/${prompt.id}/versions/new`}>
+                  Create the first version
+                </Link>
+              </div>
+            )}
+          </section>
+        </TabsContent>
+
+        <TabsContent value="integration">
+          <section className="detail-tab-section">
+            <div className="detail-tab-heading">
+              <div>
+                <h2>API integration</h2>
+                <p>Fetch the current prompt and variables from your application.</p>
+              </div>
+              <Button variant="outline" onClick={handleCopyUrl}>
+                <LucideCopy className="h-4 w-4" />
+                Copy endpoint
+              </Button>
+            </div>
+
+            <div className="integration-endpoint">
+              <span>GET</span>
+              <code>{endpoint}</code>
+            </div>
+
+            <div className="integration-code-heading">
+              <div className="integration-language-tabs">
+                {(["javascript", "python", "curl"] as const).map(
+                  (language) => (
+                    <button
+                      data-active={selectedLanguage === language}
+                      key={language}
+                      onClick={() => setSelectedLanguage(language)}
+                    >
+                      {language === "curl"
+                        ? "cURL"
+                        : language[0].toUpperCase() + language.slice(1)}
+                    </button>
+                  )
+                )}
+              </div>
+              <button className="text-action" onClick={handleCopyCode}>
+                <LucideCopy className="h-4 w-4" />
+                Copy code
+              </button>
+            </div>
+            <pre className="integration-code">
+              {generateCodeSnippet(prompt.id, selectedLanguage)}
+            </pre>
+          </section>
         </TabsContent>
       </Tabs>
     </div>
